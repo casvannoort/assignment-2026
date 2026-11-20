@@ -44,7 +44,7 @@ Tick a todo in the same commit that does the work. See the workflow in `PLAN.md`
 - [x] Domain: moving to the same slot is a no-op
 - [x] Domain: moving sets `bookedBy` to the parent who moved it
 - [x] Domain: cancel a booking
-- [ ] Repository: deletes bookings that are no longer in the aggregate (integration)
+- [x] Repository: deletes bookings that are no longer in the aggregate (integration)
 - [ ] Command: move checks for an overlapping booking at another evening, like booking does
 - [ ] `PUT` and `DELETE /evenings/{id}/bookings/{bookingId}`: any parent of the child (`403` otherwise, `404` for another evening)
 - [ ] E2E: the second parent moves the booking, then cancels it
