@@ -67,7 +67,7 @@ Tick a todo in the same commit that does the work. See the workflow in `PLAN.md`
 - [x] School generator: deterministic school, insert and reset
 - [x] API client and consistency checker (before/after per request)
 - [x] Layer 2 invariants, each proven by a test that breaks the database on purpose
-- [ ] Layer 1 assignment checks, one per assignment item
+- [x] Layer 1 assignment checks, one per assignment item
 - [ ] Sequential simulator with outcome counts and report
 - [ ] Independent scenarios from a fresh reviewer, implemented word for word
 - [ ] Concurrent simulator with bursts and a capacity row
