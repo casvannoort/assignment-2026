@@ -26,33 +26,40 @@ class SequentialSimulator(private val api: Api, private val jdbc: JdbcTemplate, 
         val seen = mutableSetOf<Finding>()
 
         repeat(steps) { step ->
-            val before = Snapshot.take(jdbc)
-            val requestedAt = now()
-            val pick = picker.next(State(evenings.filter { e -> before.evenings.any { it.id == e } }, before, requestedAt))
-            val action = pick.action
-            val reply = if (action is Action.AdvanceClock) null.also { clock.advance(Duration.ofMinutes(action.minutes)) }
-            else api.send(action)
-            if (action is Action.CreateEvening && reply?.status == 201) evenings += reply.id()
-            if (action is Action.RemoveSlot && reply?.status == 204) picker.slotRemoved(action.evening, action.slot)
-            val after = Snapshot.take(jdbc)
+            try {
+                val before = Snapshot.take(jdbc)
+                val requestedAt = now()
+                val pick = picker.next(State(evenings.filter { e -> before.evenings.any { it.id == e } }, before, requestedAt))
+                val action = pick.action
+                val reply = if (action is Action.AdvanceClock) null.also { clock.advance(Duration.ofMinutes(action.minutes)) }
+                else api.send(action)
+                if (action is Action.CreateEvening && reply?.status == 201) evenings += reply.id()
+                if (action is Action.RemoveSlot && reply?.status == 204) picker.slotRemoved(action.evening, action.slot)
+                val after = Snapshot.take(jdbc)
 
-            val found = mutableListOf<Finding>()
-            if (reply != null) {
-                found += Consistency.check(action, reply, before, after)
-                found += Refusals.check(action, reply, before, requestedAt, school)
-                found += assignmentChecks(pick, reply, before, after, school, requestedAt)
-            }
-            found += Invariants.check(jdbc, now(), ended)
-            // A broken state stays broken: report each violation once, at the step that caused it.
-            findings += found.filter { seen.add(it) }.map { it.copy(message = "seed $seed step $step: ${it.message}") }
+                val found = mutableListOf<Finding>()
+                if (reply != null) {
+                    found += Consistency.check(action, reply, before, after)
+                    found += Refusals.check(action, reply, before, requestedAt, school)
+                    found += assignmentChecks(pick, reply, before, after, school, requestedAt)
+                }
+                found += Invariants.check(jdbc, now(), ended)
+                // A broken state stays broken: report each violation once, at the step that caused it.
+                findings += found.filter { seen.add(it) }.map { it.copy(message = "seed $seed step $step: ${it.message}") }
 
-            val outcome = when {
-                reply == null -> "advance clock"
-                reply.code != null -> reply.code!!
-                else -> "${action::class.simpleName} ${reply.status}"
+                val outcome = when {
+                    reply == null -> "advance clock"
+                    reply.code != null -> reply.code!!
+                    else -> "${action::class.simpleName} ${reply.status}"
+                }
+                outcomes.merge(outcome, 1, Int::plus)
+                log += "$step ${pick.describe} -> ${reply?.status ?: "-"} ${reply?.code ?: ""}".trim()
+            } catch (e: Exception) {
+                // Keep the evidence: a crash is a finding with its seed and step, and the run goes on.
+                findings += Finding("crash", "seed $seed step $step: ${e::class.simpleName}: ${e.message}")
+                outcomes.merge("crash", 1, Int::plus)
+                log += "$step crash ${e::class.simpleName}"
             }
-            outcomes.merge(outcome, 1, Int::plus)
-            log += "$step ${pick.describe} -> ${reply?.status ?: "-"} ${reply?.code ?: ""}".trim()
         }
         return RunResult(seed, log, outcomes, findings)
     }
