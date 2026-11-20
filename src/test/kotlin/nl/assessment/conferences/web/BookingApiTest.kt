@@ -15,6 +15,7 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc
 import org.springframework.context.annotation.Import
+import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.http.MediaType
 import org.springframework.test.web.servlet.get
@@ -30,6 +31,7 @@ class BookingApiTest(
     @Autowired private val mvc: MockMvc,
     @Autowired private val evenings: EveningCommands,
     @Autowired private val bookings: BookingCommands,
+    @Autowired private val jdbc: JdbcTemplate,
 ) {
 
     private fun id(n: Int) = UUID.fromString("00000000-0000-0000-0000-000000000$n")
@@ -61,12 +63,16 @@ class BookingApiTest(
     }
 
     @Test
-    fun `a parent sees no slots of a teacher who does not teach their children`() {
-        val evening = eveningAtJansen()
+    fun `slots of an evening the parent cannot see give 404`() {
+        val ofAnotherTeacher = eveningAtJansen().id.value
+        val ended = UUID.randomUUID()
+        jdbc.update("INSERT INTO evening VALUES (?, ?, DATE '2020-01-01', TIME '19:00', TIME '20:00', 15)", ended, msJansen)
 
-        mvc.get("/evenings/${evening.id.value}/slots") { header("X-User-Id", kees) }.andExpect {
-            status { isOk() }
-            jsonPath("$.length()") { value(0) }
+        listOf(ofAnotherTeacher, ended, UUID.randomUUID()).forEach { evening ->
+            mvc.get("/evenings/$evening/slots") { header("X-User-Id", if (evening == ended) sara else kees) }.andExpect {
+                status { isNotFound() }
+                jsonPath("$.code") { value("EVENING_NOT_FOUND") }
+            }
         }
     }
 
