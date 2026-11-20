@@ -39,6 +39,18 @@ class ConferenceEveningRepository(private val jdbc: JdbcTemplate) {
         }
     }
 
+    /** Locks the teacher until the transaction ends, so their evenings can be checked and changed safely. */
+    fun lockTeacher(teacherId: TeacherId) {
+        jdbc.query("SELECT id FROM teacher WHERE id = ? FOR UPDATE", { _ -> }, teacherId.value)
+    }
+
+    fun hasOverlappingEvening(teacherId: TeacherId, date: LocalDate, time: TimeRange): Boolean =
+        jdbc.queryForObject(
+            "SELECT EXISTS (SELECT 1 FROM evening WHERE teacher_id = ? AND date = ? AND start_time < ? AND ? < end_time)",
+            Boolean::class.java,
+            teacherId.value, date, time.end, time.start,
+        )!!
+
     fun findById(id: EveningId): ConferenceEvening? {
         val slots = jdbc.query(
             "SELECT id, start_time, end_time, capacity FROM slot WHERE evening_id = ? ORDER BY start_time",
