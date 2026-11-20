@@ -27,7 +27,8 @@ class SequentialSimulator(private val api: Api, private val jdbc: JdbcTemplate, 
 
         repeat(steps) { step ->
             val before = Snapshot.take(jdbc)
-            val pick = picker.next(State(evenings.filter { e -> before.evenings.any { it.id == e } }, before, now()))
+            val requestedAt = now()
+            val pick = picker.next(State(evenings.filter { e -> before.evenings.any { it.id == e } }, before, requestedAt))
             val action = pick.action
             val reply = if (action is Action.AdvanceClock) null.also { clock.advance(Duration.ofMinutes(action.minutes)) }
             else api.send(action)
@@ -37,6 +38,7 @@ class SequentialSimulator(private val api: Api, private val jdbc: JdbcTemplate, 
             val found = mutableListOf<Finding>()
             if (reply != null) {
                 found += Consistency.check(action, reply, before, after)
+                found += Refusals.check(action, reply, before, requestedAt, school)
                 found += assignmentChecks(pick, reply, after, school)
             }
             found += Invariants.check(jdbc, now(), ended)
