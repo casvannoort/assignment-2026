@@ -5,6 +5,7 @@ import nl.assessment.conferences.domain.EveningOverlaps
 import nl.assessment.conferences.domain.InvalidEvening
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
+import org.springframework.http.converter.HttpMessageNotReadableException
 import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.bind.annotation.RestControllerAdvice
 
@@ -32,4 +33,8 @@ class ErrorHandler {
     @ExceptionHandler
     fun forbidden(e: Forbidden) =
         ResponseEntity.status(HttpStatus.FORBIDDEN).body(ErrorResponse("FORBIDDEN", e.message!!))
+
+    @ExceptionHandler
+    fun unreadable(e: HttpMessageNotReadableException) =
+        ResponseEntity.badRequest().body(ErrorResponse("INVALID_REQUEST", "request body is missing fields or is not valid JSON"))
 }
