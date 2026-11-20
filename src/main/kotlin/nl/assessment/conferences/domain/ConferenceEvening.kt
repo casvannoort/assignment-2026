@@ -23,6 +23,7 @@ class ConferenceEvening(
 
     fun book(childId: ChildId, parentId: ParentId, slotId: SlotId, now: LocalDateTime): Booking {
         val slot = slots.find { it.id == slotId } ?: throw SlotNotFound()
+        if (_bookings.any { it.childId == childId }) throw ChildAlreadyBooked()
         if (_bookings.count { it.slotId == slotId } >= slot.capacity) throw SlotFull()
         return Booking(BookingId.new(), slotId, childId, parentId).also { _bookings += it }
     }
