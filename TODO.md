@@ -41,8 +41,8 @@ Tick a todo in the same commit that does the work. See the workflow in `PLAN.md`
 ## Phase 3: Parent moves or cancels a booking
 
 - [x] Domain: move to another slot; a full slot gives `SlotFull` and the original booking stays unchanged
-- [ ] Domain: moving to the same slot is a no-op
-- [ ] Domain: moving sets `bookedBy` to the parent who moved it
+- [x] Domain: moving to the same slot is a no-op
+- [x] Domain: moving sets `bookedBy` to the parent who moved it
 - [ ] Domain: cancel a booking
 - [ ] Repository: deletes bookings that are no longer in the aggregate (integration)
 - [ ] Command: move checks for an overlapping booking at another evening, like booking does

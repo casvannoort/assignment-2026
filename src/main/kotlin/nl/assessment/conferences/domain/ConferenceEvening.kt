@@ -33,8 +33,9 @@ class ConferenceEvening(
     fun move(bookingId: BookingId, toSlotId: SlotId, parentId: ParentId, now: LocalDateTime): Booking {
         if (hasEnded(now)) throw EveningHasEnded()
         val booking = booking(bookingId)
+        if (booking.slotId == toSlotId) return booking
         ensureRoomIn(toSlotId)
-        val moved = booking.copy(slotId = toSlotId)
+        val moved = booking.copy(slotId = toSlotId, bookedBy = parentId)
         _bookings[_bookings.indexOf(booking)] = moved
         return moved
     }
