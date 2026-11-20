@@ -59,6 +59,7 @@ val simulation by tasks.registering(Test::class) {
     useJUnitPlatform { includeTags("simulation") }
     systemProperty("seed", findProperty("seed") ?: "1")
     systemProperty("seeds", findProperty("seeds") ?: "1")
+    systemProperty("bursts", findProperty("bursts") ?: "1")
     systemProperty("steps", findProperty("steps") ?: "300")
     outputs.upToDateWhen { false }
 }
