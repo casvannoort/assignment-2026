@@ -19,6 +19,9 @@ class ConferenceEveningE2ETest(@LocalServerPort port: Int) {
 
     private val http = RestClient.create("http://localhost:$port")
     private val msJansen = "00000000-0000-0000-0000-000000000101"
+    private val anna = "00000000-0000-0000-0000-000000000201"
+    private val mark = "00000000-0000-0000-0000-000000000202"
+    private val emma = "00000000-0000-0000-0000-000000000301"
     private val date = TestDates.unique()
 
     @Test
@@ -36,5 +39,32 @@ class ConferenceEveningE2ETest(@LocalServerPort port: Int) {
             .retrieve().body<List<Map<String, Any>>>()!!
 
         assertContains(evenings.map { it["id"] }, created["id"])
+    }
+
+    @Test
+    fun `a parent books a conversation and the other parent sees it`() {
+        val evening = http.post().uri("/evenings")
+            .header("X-User-Id", msJansen)
+            .contentType(MediaType.APPLICATION_JSON)
+            .body("""{"date": "$date", "start": "19:00", "end": "20:00", "conversationMinutes": 15}""")
+            .retrieve().body<Map<String, Any>>()!!
+
+        val freeSlots = http.get().uri("/evenings/${evening["id"]}/slots")
+            .header("X-User-Id", anna)
+            .retrieve().body<List<Map<String, Any>>>()!!
+
+        val booking = http.post().uri("/evenings/${evening["id"]}/bookings")
+            .header("X-User-Id", anna)
+            .contentType(MediaType.APPLICATION_JSON)
+            .body("""{"childId": "$emma", "slotId": "${freeSlots[2]["id"]}"}""")
+            .retrieve().body<Map<String, Any>>()!!
+
+        val marksView = http.get().uri("/bookings")
+            .header("X-User-Id", mark)
+            .retrieve().body<List<Map<String, Any>>>()!!
+            .single { it["id"] == booking["id"] }
+
+        assertEquals("19:30:00", marksView["start"])
+        assertEquals("Anna Bakker", marksView["bookedByName"])
     }
 }

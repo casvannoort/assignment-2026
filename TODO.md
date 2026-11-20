@@ -36,7 +36,7 @@ Tick a todo in the same commit that does the work. See the workflow in `PLAN.md`
 - [x] View `slot_availability` + `GET /evenings/{id}/slots`
 - [x] `POST /evenings/{id}/bookings`
 - [x] View `child_bookings` + `GET /bookings`
-- [ ] E2E: a parent books, the second parent of the child sees the booking
+- [x] E2E: a parent books, the second parent of the child sees the booking
 
 ## Phase 3: Parent moves or cancels a booking
 
