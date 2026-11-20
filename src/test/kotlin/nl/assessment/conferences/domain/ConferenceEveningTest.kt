@@ -200,4 +200,29 @@ class ConferenceEveningTest {
         assertFailsWith<EveningHasEnded> { evening.move(booking.id, evening.slots[1].id, anna, afterwards) }
         assertFailsWith<EveningHasEnded> { evening.cancel(booking.id, afterwards) }
     }
+
+    @Test
+    fun `a teacher removes an empty slot, for example for a break`() {
+        val evening = evening("19:00", "20:00", 15)
+        val brk = evening.slots[2].id
+
+        evening.removeSlot(brk)
+
+        assertEquals(listOf("19:00-19:15", "19:15-19:30", "19:45-20:00"), evening.slotTimes())
+        assertFailsWith<SlotNotFound> { evening.book(emma, anna, brk, now) }
+    }
+
+    @Test
+    fun `a slot with bookings cannot be removed`() {
+        val evening = evening("19:00", "20:00", 15)
+        evening.book(emma, anna, evening.slots[0].id, now)
+
+        assertFailsWith<SlotHasBookings> { evening.removeSlot(evening.slots[0].id) }
+        assertEquals(4, evening.slots.size)
+    }
+
+    @Test
+    fun `removing an unknown slot fails`() {
+        assertFailsWith<SlotNotFound> { evening("19:00", "20:00", 15).removeSlot(SlotId.new()) }
+    }
 }
