@@ -116,4 +116,20 @@ class ConferenceEveningTest {
         assertFailsWith<ChildAlreadyBooked> { evening.book(emma, mark, evening.slots[1].id, now) }
         assertEquals(1, evening.bookings.size)
     }
+
+    @Test
+    fun `no booking once the evening has ended`() {
+        val evening = evening("19:00", "20:00", 15)
+        val atTheEnd = LocalDateTime.of(date, LocalTime.parse("20:00"))
+
+        assertFailsWith<EveningHasEnded> { evening.book(emma, anna, evening.slots[0].id, atTheEnd) }
+    }
+
+    @Test
+    fun `booking is still possible during the evening`() {
+        val evening = evening("19:00", "20:00", 15)
+        val duringTheEvening = LocalDateTime.of(date, LocalTime.parse("19:30"))
+
+        evening.book(emma, anna, evening.slots[3].id, duringTheEvening)
+    }
 }
