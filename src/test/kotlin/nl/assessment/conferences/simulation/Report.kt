@@ -8,6 +8,7 @@ object Report {
     /** Outcomes a run must reach; otherwise "no findings" means nothing. */
     val keyOutcomes = setOf(
         "SLOT_FULL", "CHILD_ALREADY_BOOKED", "CHILD_DOUBLE_BOOKED", "FORBIDDEN", "EVENING_HAS_ENDED", "SLOT_HAS_BOOKINGS",
+        "BOOKING_NOT_FOUND", "SLOT_NOT_FOUND", "UNAUTHENTICATED",
     )
 
     fun write(mode: String, runs: List<RunResult>): File {

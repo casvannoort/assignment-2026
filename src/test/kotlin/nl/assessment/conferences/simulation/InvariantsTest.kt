@@ -105,7 +105,11 @@ class InvariantsTest(@Autowired private val jdbc: JdbcTemplate) {
     fun `a booking by someone who is not the parent, or at a teacher who does not teach the child, is reported`() {
         val e = evening(msJansen)
         booking(e, slot(e, "19:00", "19:15"), lisa, sara) // Lisa does not have Ms. Jansen
+        assertEquals(setOf("L2.5 parent and teacher belong to the child"), reported())
 
+        clean()
+        val e2 = evening(msJansen)
+        booking(e2, slot(e2, "19:00", "19:15"), daan, anna) // Anna is not Daan's parent
         assertEquals(setOf("L2.5 parent and teacher belong to the child"), reported())
     }
 

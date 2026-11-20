@@ -50,4 +50,14 @@ class SequentialSimulationTest(
         val missing = Report.keyOutcomes - runs.flatMap { it.outcomes.keys }.toSet()
         assertTrue(missing.isEmpty(), "never reached $missing, see $report")
     }
+
+    @Test
+    fun `the picker sends requests across evenings, to removed slots and with the wrong role`() {
+        val run = simulator.run(seed = 2, steps = 600)
+
+        assertTrue(run.log.any { "wrong-role" in it }, "no wrong-role requests")
+        assertTrue(run.log.any { "removed-slot" in it }, "no requests to removed slots")
+        assertTrue(run.log.any { "other-evening" in it }, "no cross-evening requests")
+        assertTrue((run.outcomes["BOOKING_NOT_FOUND"] ?: 0) > 0, "BOOKING_NOT_FOUND never reached")
+    }
 }
