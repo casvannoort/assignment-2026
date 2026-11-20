@@ -12,7 +12,7 @@ Tick a todo in the same commit that does the work. See the workflow in `PLAN.md`
 
 ## Phase 1: Teacher creates an evening
 
-- [ ] Domain: ids as value classes and `TimeRange`
+- [x] Domain: ids as value classes and `TimeRange`
 - [ ] Domain: generate slots from start, end and conversation length; a trailing part that is too short is dropped
 - [ ] Domain: reject an invalid evening (end ≤ start, conversation length ≤ 0 or longer than the evening, capacity < 1, date in the past)
 - [ ] `Clock` bean fixed to `Europe/Amsterdam`
