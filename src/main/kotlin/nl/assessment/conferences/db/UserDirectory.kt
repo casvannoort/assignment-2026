@@ -11,8 +11,8 @@ import java.util.UUID
 class UserDirectory(private val jdbc: JdbcTemplate) {
 
     fun find(id: UUID): User? = jdbc.query(
-        "SELECT 'TEACHER' FROM teacher WHERE id = ? UNION ALL SELECT 'PARENT' FROM parent WHERE id = ?",
-        { rs, _ -> if (rs.getString(1) == "TEACHER") User.Teacher(TeacherId(id)) else User.Parent(ParentId(id)) },
-        id, id,
+        "SELECT role FROM app_user WHERE id = ?",
+        { rs, _ -> if (rs.getString("role") == "TEACHER") User.Teacher(TeacherId(id)) else User.Parent(ParentId(id)) },
+        id,
     ).singleOrNull()
 }
