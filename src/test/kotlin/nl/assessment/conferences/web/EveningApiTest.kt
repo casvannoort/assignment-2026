@@ -135,10 +135,6 @@ class EveningApiTest(@Autowired private val mvc: MockMvc, @Autowired private val
         listEvenings(kees).andExpect { jsonPath("$[*].id") { value(not(hasItem(ended.toString()))) } }
     }
 
-    private fun slotIds(evening: String) = JsonPath.read<List<String>>(
-        mvc.get("/evenings/$evening/slots") { header("X-User-Id", anna) }.andReturn().response.contentAsString, "$[*].id",
-    )
-
     @Test
     fun `a teacher removes a slot, but not one with a booking`() {
         val response = createEvening(msJansen).andReturn().response.contentAsString

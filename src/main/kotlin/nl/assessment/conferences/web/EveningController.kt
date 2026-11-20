@@ -4,12 +4,14 @@ import nl.assessment.conferences.command.EveningCommands
 import nl.assessment.conferences.domain.ConferenceEvening
 import nl.assessment.conferences.domain.EveningId
 import nl.assessment.conferences.domain.EveningNotFound
+import nl.assessment.conferences.domain.SlotId
 import nl.assessment.conferences.domain.Forbidden
 import nl.assessment.conferences.domain.User
 import nl.assessment.conferences.query.EveningQueries
 import nl.assessment.conferences.query.FreeSlot
 import nl.assessment.conferences.query.SlotQueries
 import org.springframework.http.HttpStatus
+import org.springframework.web.bind.annotation.DeleteMapping
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
@@ -74,5 +76,12 @@ class EveningController(
             Duration.ofMinutes(request.conversationMinutes), request.capacity,
         )
         return EveningResponse(evening)
+    }
+
+    @DeleteMapping("/{id}/slots/{slotId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    fun removeSlot(user: User, @PathVariable id: UUID, @PathVariable slotId: UUID) {
+        val teacher = user as? User.Teacher ?: throw Forbidden("only teachers can remove slots")
+        commands.removeSlot(teacher.id, EveningId(id), SlotId(slotId))
     }
 }

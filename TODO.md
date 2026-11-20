@@ -52,7 +52,7 @@ Tick a todo in the same commit that does the work. See the workflow in `PLAN.md`
 ## Phase 4: Teacher sees the overview and removes a slot
 
 - [x] Domain: remove a slot; a slot with bookings gives `SlotHasBookings`
-- [ ] `DELETE /evenings/{id}/slots/{slotId}` (own evenings only, `403` otherwise)
+- [x] `DELETE /evenings/{id}/slots/{slotId}` (own evenings only, `403` otherwise)
 - [ ] View `evening_overview` with empty slots (`LEFT JOIN`) + `GET /evenings/{id}/overview` (own evenings only)
 - [ ] E2E: a teacher removes a slot for a break and sees the overview
 
