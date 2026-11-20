@@ -7,6 +7,7 @@ import java.time.LocalDateTime
 import java.time.LocalTime
 import java.util.UUID
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 
 class ConferenceEveningTest {
 
@@ -40,5 +41,32 @@ class ConferenceEveningTest {
         val evening = evening("19:00", "20:00", 30, capacity = 2)
 
         assertEquals(listOf(2, 2), evening.slots.map { it.capacity })
+    }
+
+    @Test
+    fun `rejects an end that is not after the start`() {
+        assertFailsWith<InvalidEvening> { evening("20:00", "20:00", 15) }
+        assertFailsWith<InvalidEvening> { evening("20:00", "19:00", 15) }
+    }
+
+    @Test
+    fun `rejects a conversation length that is zero or does not fit in the evening`() {
+        assertFailsWith<InvalidEvening> { evening("19:00", "20:00", 0) }
+        assertFailsWith<InvalidEvening> { evening("19:00", "20:00", 61) }
+    }
+
+    @Test
+    fun `rejects a capacity below one`() {
+        assertFailsWith<InvalidEvening> { evening("19:00", "20:00", 15, capacity = 0) }
+    }
+
+    @Test
+    fun `rejects an evening that has already ended`() {
+        assertFailsWith<InvalidEvening> {
+            ConferenceEvening.create(
+                teacher, date, LocalTime.parse("19:00"), LocalTime.parse("20:00"), Duration.ofMinutes(15), 1,
+                now = LocalDateTime.parse("2030-03-12T20:00"),
+            )
+        }
     }
 }
