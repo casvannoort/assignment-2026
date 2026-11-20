@@ -72,4 +72,22 @@ class ConferenceEveningRepositoryTest(@Autowired private val repository: Confere
 
         assertEquals(listOf(booking), assertNotNull(repository.findById(evening.id)).bookings)
     }
+
+    @Test
+    fun `saving deletes cancelled bookings and keeps moved ones`() {
+        val now = LocalDateTime.parse("2030-03-01T12:00")
+        val anna = ParentId(UUID.fromString("00000000-0000-0000-0000-000000000201"))
+        val emma = ChildId(UUID.fromString("00000000-0000-0000-0000-000000000301"))
+        val daan = ChildId(UUID.fromString("00000000-0000-0000-0000-000000000302"))
+        val evening = newEvening()
+        val cancelled = evening.book(emma, anna, evening.slots[0].id, now)
+        val moved = evening.book(daan, anna, evening.slots[1].id, now)
+        repository.save(evening)
+
+        evening.cancel(cancelled.id, now)
+        evening.move(moved.id, evening.slots[3].id, anna, now)
+        repository.save(evening)
+
+        assertEquals(evening.bookings, assertNotNull(repository.findById(evening.id)).bookings)
+    }
 }
