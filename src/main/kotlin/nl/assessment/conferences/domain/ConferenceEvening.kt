@@ -25,6 +25,12 @@ class ConferenceEvening(
             capacity: Int,
             now: LocalDateTime,
         ): ConferenceEvening {
+            if (end <= start) throw InvalidEvening("end must be after start")
+            if (conversationLength <= Duration.ZERO) throw InvalidEvening("conversation length must be positive")
+            if (conversationLength > Duration.between(start, end)) throw InvalidEvening("conversation length does not fit in the evening")
+            if (capacity < 1) throw InvalidEvening("capacity must be at least 1")
+            if (!LocalDateTime.of(date, end).isAfter(now)) throw InvalidEvening("evening has already ended")
+
             val count = Duration.between(start, end).dividedBy(conversationLength)
             val slots = (0 until count).map { i ->
                 val slotStart = start.plus(conversationLength.multipliedBy(i))
