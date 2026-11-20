@@ -65,6 +65,25 @@ class ConferenceEveningRepository(private val jdbc: JdbcTemplate) {
             teacherId.value, date, time.end, time.start,
         )!!
 
+    /** Locks the child until the transaction ends, so their bookings across evenings can be checked safely. */
+    fun lockChild(childId: ChildId) {
+        jdbc.query("SELECT id FROM child WHERE id = ? FOR UPDATE", { _ -> }, childId.value)
+    }
+
+    fun hasOverlappingBooking(childId: ChildId, date: LocalDate, time: TimeRange, otherThan: EveningId): Boolean =
+        jdbc.queryForObject(
+            """
+            SELECT EXISTS (
+                SELECT 1 FROM booking b
+                JOIN slot s ON s.id = b.slot_id
+                JOIN evening e ON e.id = b.evening_id
+                WHERE b.child_id = ? AND e.id <> ? AND e.date = ? AND s.start_time < ? AND ? < s.end_time
+            )
+            """,
+            Boolean::class.java,
+            childId.value, otherThan.value, date, time.end, time.start,
+        )!!
+
     fun isParentOf(parentId: ParentId, childId: ChildId): Boolean = jdbc.queryForObject(
         "SELECT EXISTS (SELECT 1 FROM parent_child WHERE parent_id = ? AND child_id = ?)",
         Boolean::class.java, parentId.value, childId.value,

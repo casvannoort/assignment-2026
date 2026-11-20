@@ -1,6 +1,7 @@
 package nl.assessment.conferences.web
 
 import nl.assessment.conferences.domain.ChildAlreadyBooked
+import nl.assessment.conferences.domain.ChildDoubleBooked
 import nl.assessment.conferences.domain.DomainException
 import nl.assessment.conferences.domain.EveningHasEnded
 import nl.assessment.conferences.domain.EveningNotFound
@@ -26,7 +27,8 @@ class ErrorHandler {
     fun domain(e: DomainException): ResponseEntity<ErrorResponse> {
         val status = when (e) {
             is InvalidEvening -> HttpStatus.BAD_REQUEST
-            is EveningOverlaps, is SlotFull, is ChildAlreadyBooked, is EveningHasEnded -> HttpStatus.CONFLICT
+            is EveningOverlaps, is SlotFull, is ChildAlreadyBooked, is ChildDoubleBooked, is EveningHasEnded,
+            -> HttpStatus.CONFLICT
             is SlotNotFound, is EveningNotFound -> HttpStatus.NOT_FOUND
             is Forbidden -> HttpStatus.FORBIDDEN
         }

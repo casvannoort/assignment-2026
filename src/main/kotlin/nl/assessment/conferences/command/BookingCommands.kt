@@ -2,6 +2,7 @@ package nl.assessment.conferences.command
 
 import nl.assessment.conferences.db.ConferenceEveningRepository
 import nl.assessment.conferences.domain.Booking
+import nl.assessment.conferences.domain.ChildDoubleBooked
 import nl.assessment.conferences.domain.ChildId
 import nl.assessment.conferences.domain.EveningId
 import nl.assessment.conferences.domain.EveningNotFound
@@ -22,6 +23,12 @@ class BookingCommands(private val repository: ConferenceEveningRepository, priva
         if (!repository.isParentOf(parentId, childId)) throw Forbidden("not your child")
         if (!repository.isTeacherOf(evening.teacherId, childId)) throw Forbidden("this teacher does not teach the child")
         val booking = evening.book(childId, parentId, slotId, LocalDateTime.now(clock))
+
+        // Lock order: evening (above), then child. Always the same, so two bookings cannot deadlock.
+        repository.lockChild(childId)
+        val time = evening.slots.first { it.id == slotId }.time
+        if (repository.hasOverlappingBooking(childId, evening.date, time, otherThan = evening.id)) throw ChildDoubleBooked()
+
         repository.save(evening)
         return booking
     }
