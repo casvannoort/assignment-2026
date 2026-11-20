@@ -37,6 +37,7 @@ class BookingApiTest(
     private val anna = id(201)
     private val mark = id(202)
     private val sara = id(203)
+    private val kees = id(204) // only Lisa's parent, Lisa does not have Ms. Jansen
     private val emma = id(301)
     private val daan = id(302)
 
@@ -56,6 +57,16 @@ class BookingApiTest(
             jsonPath("$[0].start") { value("19:00:00") }
             jsonPath("$[0].freePlaces") { value(1) }
             jsonPath("$[1].freePlaces") { value(2) }
+        }
+    }
+
+    @Test
+    fun `a parent sees no slots of a teacher who does not teach their children`() {
+        val evening = eveningAtJansen()
+
+        mvc.get("/evenings/${evening.id.value}/slots") { header("X-User-Id", kees) }.andExpect {
+            status { isOk() }
+            jsonPath("$.length()") { value(0) }
         }
     }
 
