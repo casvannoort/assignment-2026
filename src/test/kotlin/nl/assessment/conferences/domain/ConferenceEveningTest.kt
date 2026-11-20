@@ -178,4 +178,26 @@ class ConferenceEveningTest {
 
         assertEquals(mark, evening.move(booking.id, evening.slots[1].id, mark, now).bookedBy)
     }
+
+    @Test
+    fun `a cancelled booking frees its place`() {
+        val evening = evening("19:00", "20:00", 15)
+        val slot = evening.slots[0].id
+        val booking = evening.book(emma, anna, slot, now)
+
+        evening.cancel(booking.id, now)
+
+        assertTrue(evening.bookings.isEmpty())
+        evening.book(daan, anna, slot, now)
+    }
+
+    @Test
+    fun `no moving or cancelling once the evening has ended`() {
+        val evening = evening("19:00", "20:00", 15)
+        val booking = evening.book(emma, anna, evening.slots[0].id, now)
+        val afterwards = LocalDateTime.of(date, LocalTime.parse("21:00"))
+
+        assertFailsWith<EveningHasEnded> { evening.move(booking.id, evening.slots[1].id, anna, afterwards) }
+        assertFailsWith<EveningHasEnded> { evening.cancel(booking.id, afterwards) }
+    }
 }
