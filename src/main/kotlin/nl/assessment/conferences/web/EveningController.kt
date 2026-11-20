@@ -2,11 +2,15 @@ package nl.assessment.conferences.web
 
 import nl.assessment.conferences.command.EveningCommands
 import nl.assessment.conferences.domain.ConferenceEvening
+import nl.assessment.conferences.domain.EveningId
 import nl.assessment.conferences.domain.Forbidden
 import nl.assessment.conferences.domain.User
 import nl.assessment.conferences.query.EveningQueries
+import nl.assessment.conferences.query.FreeSlot
+import nl.assessment.conferences.query.SlotQueries
 import org.springframework.http.HttpStatus
 import org.springframework.web.bind.annotation.GetMapping
+import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
@@ -43,10 +47,20 @@ data class EveningResponse(
 
 @RestController
 @RequestMapping("/evenings")
-class EveningController(private val commands: EveningCommands, private val queries: EveningQueries) {
+class EveningController(
+    private val commands: EveningCommands,
+    private val queries: EveningQueries,
+    private val slots: SlotQueries,
+) {
 
     @GetMapping
     fun list(user: User) = queries.evenings(user)
+
+    @GetMapping("/{id}/slots")
+    fun freeSlots(user: User, @PathVariable id: UUID): List<FreeSlot> {
+        val parent = user as? User.Parent ?: throw Forbidden("teachers use the overview")
+        return slots.freeSlots(parent.id, EveningId(id))
+    }
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
