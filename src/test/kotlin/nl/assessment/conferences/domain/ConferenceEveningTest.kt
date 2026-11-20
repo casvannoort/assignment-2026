@@ -160,4 +160,22 @@ class ConferenceEveningTest {
 
         assertFailsWith<BookingNotFound> { evening.move(BookingId.new(), evening.slots[0].id, anna, now) }
     }
+
+    @Test
+    fun `moving to the slot it is already in changes nothing`() {
+        val evening = evening("19:00", "20:00", 15)
+        val booking = evening.book(emma, anna, evening.slots[0].id, now)
+
+        assertEquals(booking, evening.move(booking.id, evening.slots[0].id, anna, now))
+        assertEquals(listOf(booking), evening.bookings)
+    }
+
+    @Test
+    fun `moving records the parent who moved it`() {
+        val evening = evening("19:00", "20:00", 15)
+        val mark = ParentId(UUID.randomUUID())
+        val booking = evening.book(emma, anna, evening.slots[0].id, now)
+
+        assertEquals(mark, evening.move(booking.id, evening.slots[1].id, mark, now).bookedBy)
+    }
 }
