@@ -18,7 +18,9 @@ import org.springframework.context.annotation.Import
 import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.http.MediaType
+import org.springframework.test.web.servlet.delete
 import org.springframework.test.web.servlet.get
+import org.springframework.test.web.servlet.put
 import org.springframework.test.web.servlet.post
 import java.time.Duration
 import java.time.LocalTime
@@ -156,6 +158,36 @@ class BookingApiTest(
         }
         mvc.get("/bookings") { header("X-User-Id", sara) }.andExpect {
             jsonPath("$[*].id") { value(not(hasItem(booking.toString()))) }
+        }
+    }
+
+    @Test
+    fun `the other parent moves and cancels a booking`() {
+        val evening = eveningAtJansen()
+        val booking = bookings.book(ParentId(anna), evening.id, ChildId(emma), evening.slots[0].id).id.value
+        val url = "/evenings/${evening.id.value}/bookings/$booking"
+
+        mvc.put(url) {
+            header("X-User-Id", mark)
+            contentType = MediaType.APPLICATION_JSON
+            content = """{"slotId": "${evening.slots[1].id.value}"}"""
+        }.andExpect {
+            status { isOk() }
+            jsonPath("$.slotId") { value(evening.slots[1].id.value.toString()) }
+        }
+
+        mvc.delete(url) { header("X-User-Id", mark) }.andExpect { status { isNoContent() } }
+    }
+
+    @Test
+    fun `a booking addressed through another evening gives 404`() {
+        val evening = eveningAtJansen()
+        val otherEvening = eveningAtJansen()
+        val booking = bookings.book(ParentId(anna), evening.id, ChildId(emma), evening.slots[0].id).id.value
+
+        mvc.delete("/evenings/${otherEvening.id.value}/bookings/$booking") { header("X-User-Id", anna) }.andExpect {
+            status { isNotFound() }
+            jsonPath("$.code") { value("BOOKING_NOT_FOUND") }
         }
     }
 }
