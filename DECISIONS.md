@@ -17,3 +17,13 @@ The problem itself is small, though, and full DDD brings ceremony that a four-ho
 | Ubiquitous language (conversation, booking) | Mappers between domain, persistence and API models where they are not needed |
 
 CQRS keeps the aggregate small: it only handles writes, and reads come straight from Postgres views.
+
+### CQRS read side: plain SQL views
+
+Reads go through plain Postgres views (`evening_summary`, `app_user`, ...) over the same tables the aggregate writes to. A view stores no data: Postgres runs its query each time it is read. So the read side is always up to date, nothing is stored twice, and the shape of each read lives in one place in the schema.
+
+Considered and not chosen: projection tables updated from domain events when the aggregate is saved, and event sourcing. Both store a separate read model, which means more code and a read side that can fall behind. They become worth it when reads get heavy or the read model must scale on its own.
+
+## Left out on purpose
+
+- **One conversation length per evening.** All slots of an evening have the same length, but each evening can have its own. A teacher cannot plan a single longer conversation within an evening. Supporting that means either letting a child book two adjacent slots (relaxing "one booking per child per evening") or giving slots their own length.

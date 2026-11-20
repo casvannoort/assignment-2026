@@ -49,7 +49,7 @@ ConferenceEvening (aggregate root)        conversationLength
 
 ## Read side (CQRS)
 
-Postgres views, created in Flyway, read by small query services with JdbcTemplate:
+Plain Postgres views (not projection tables or event sourcing, see DECISIONS.md), created in Flyway, read by small query services with JdbcTemplate. Every read goes through a view:
 
 | View | Used by |
 |---|---|
@@ -64,9 +64,9 @@ Queries that depend on "today" (upcoming evenings) get the date from the `Clock`
 ```
 domain/       pure Kotlin: aggregate, rules, errors               → unit tests
 command/      transactional: lock → check → call domain → save    → integration + e2e
-query/        read views, return response DTOs                    → integration + e2e
+query/        all read logic: views, lookups, response DTOs       → integration + e2e
 web/          controllers, error mapping, identity headers        → e2e
-db/           repository with JdbcTemplate, Flyway migrations     → integration
+db/           aggregate repository only (load, lock, save)        → integration
 ```
 
 ## Rules
@@ -135,7 +135,10 @@ Aim for good coverage of the rules and edge cases, with a logical pyramid: most 
 
 - One phase = one feature, built as a vertical slice: domain → database → HTTP.
 - Per phase: a branch `phase-N-<name>` from `master`, and one PR against `master` that Cas reviews and merges.
-- Per todo in `TODO.md`: red test → green → refactor → commit. **The commit that does the work also ticks the todo**, never a separate commit afterwards.
+- Per todo in `TODO.md`, TDD shows in the history as a pair of commits:
+  1. `test:` the failing test (red). This commit does not compile or does not pass, on purpose.
+  2. `feat:` the code that makes it pass (green), plus any refactor. **This commit also ticks the todo**, never a separate commit afterwards.
+- Setup and acceptance (e2e) tests that pass straight away get a single `test:` or `chore:` commit.
 - The next phase starts from the updated `master`.
 - Commit messages follow [Conventional Commits](https://www.conventionalcommits.org): `feat`, `test`, `fix`, `refactor`, `docs`, `chore`, with an optional scope (`evening`, `slot`, `booking`). Imperative, lowercase, no period, about 50 characters.
 
