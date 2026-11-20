@@ -40,7 +40,7 @@ Tick a todo in the same commit that does the work. See the workflow in `PLAN.md`
 
 ## Phase 3: Parent moves or cancels a booking
 
-- [ ] Domain: move to another slot; a full slot gives `SlotFull` and the original booking stays unchanged
+- [x] Domain: move to another slot; a full slot gives `SlotFull` and the original booking stays unchanged
 - [ ] Domain: moving to the same slot is a no-op
 - [ ] Domain: moving sets `bookedBy` to the parent who moved it
 - [ ] Domain: cancel a booking

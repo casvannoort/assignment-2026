@@ -11,3 +11,4 @@ class EveningHasEnded : DomainException("EVENING_HAS_ENDED", "the evening has al
 class EveningNotFound : DomainException("EVENING_NOT_FOUND", "evening not found")
 class Forbidden(message: String) : DomainException("FORBIDDEN", message)
 class ChildDoubleBooked : DomainException("CHILD_DOUBLE_BOOKED", "the child already has a conversation at this time")
+class BookingNotFound : DomainException("BOOKING_NOT_FOUND", "booking not found in this evening")

@@ -25,10 +25,25 @@ class ConferenceEvening(
 
     fun book(childId: ChildId, parentId: ParentId, slotId: SlotId, now: LocalDateTime): Booking {
         if (hasEnded(now)) throw EveningHasEnded()
-        val slot = slots.find { it.id == slotId } ?: throw SlotNotFound()
         if (_bookings.any { it.childId == childId }) throw ChildAlreadyBooked()
-        if (_bookings.count { it.slotId == slotId } >= slot.capacity) throw SlotFull()
+        ensureRoomIn(slotId)
         return Booking(BookingId.new(), slotId, childId, parentId).also { _bookings += it }
+    }
+
+    fun move(bookingId: BookingId, toSlotId: SlotId, parentId: ParentId, now: LocalDateTime): Booking {
+        if (hasEnded(now)) throw EveningHasEnded()
+        val booking = booking(bookingId)
+        ensureRoomIn(toSlotId)
+        val moved = booking.copy(slotId = toSlotId)
+        _bookings[_bookings.indexOf(booking)] = moved
+        return moved
+    }
+
+    fun booking(id: BookingId) = _bookings.find { it.id == id } ?: throw BookingNotFound()
+
+    private fun ensureRoomIn(slotId: SlotId) {
+        val slot = slots.find { it.id == slotId } ?: throw SlotNotFound()
+        if (_bookings.count { it.slotId == slotId } >= slot.capacity) throw SlotFull()
     }
 
     companion object {
