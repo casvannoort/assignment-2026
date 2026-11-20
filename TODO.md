@@ -71,4 +71,4 @@ Tick a todo in the same commit that does the work. See the workflow in `PLAN.md`
 - [x] Sequential simulator with outcome counts and report
 - [x] Independent scenarios from a fresh reviewer, implemented word for word
 - [x] Concurrent simulator with bursts and a capacity row
-- [ ] Run the full simulation and fill in the results
+- [x] Run the full simulation and fill in the results

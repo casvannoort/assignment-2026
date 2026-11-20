@@ -169,4 +169,30 @@ After each burst the invariants run, and `500`s and timeouts are counted in a "c
 
 ## Results
 
-_To be filled in after task 9._
+Two overnight rounds with the same seeds. Round 1 used the checks from the build plan. Round 2 used the stronger checks added after the final review: refusals must have a true reason, views are checked for content, confirmed writes must stand, any `5xx` fails, and the picker also sends wrong roles, cross-evening and removed-slot requests. `src/main` was not changed for any run.
+
+| Round | Sequential | Concurrent | Findings |
+|---|---|---|---|
+| 1 (plan checks) | 500 seeds, 500,000 steps | 70 bursts, 37,824 requests | 0 |
+| 2 (strong checks) | 500 seeds, 500,000 steps | 70 bursts, 62,895 requests | 0 |
+
+**Every key outcome was reached in round 2:**
+- **Sequential:** `SLOT_FULL` 4,143, `CHILD_ALREADY_BOOKED` 3,626, `CHILD_DOUBLE_BOOKED` 299, `FORBIDDEN` 96,602, `EVENING_HAS_ENDED` 117,525, `SLOT_HAS_BOOKINGS` 1,731, `BOOKING_NOT_FOUND` 9,612, `SLOT_NOT_FOUND` 7,439, `UNAUTHENTICATED` 9,848.
+- **Concurrent:** `SLOT_FULL` 27,840, `CHILD_DOUBLE_BOOKED` 5,303, `EVENING_OVERLAPS` 2,800. No `5xx` and no timeouts.
+
+**The checks are proven to fire.** Each of these deliberate breaks in the app was caught, and the app was restored afterwards:
+
+| Break | Caught by |
+|---|---|
+| Capacity rule removed | L2.2 |
+| Capacity off by one | 110 wrong `SLOT_FULL` refusals |
+| Evening lock removed | L2.2, concurrent |
+| Teacher lock removed | L2.6, concurrent |
+| Child lock removed | L2.4, concurrent |
+
+**Layer 1:** all 17 scenarios from the independent reviewer pass. The reviewer marked three points where the assignment is silent: a length that does not divide the evening, the other parent moving a booking, and removing a booked slot.
+
+**What this does not show:**
+- In long runs the clock moves days ahead, so about a quarter of the sequential steps hit evenings that have already ended.
+- Concurrent bursts never end an evening.
+- Deferred review points are listed in the ledger.
