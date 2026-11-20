@@ -58,5 +58,5 @@ Tick a todo in the same commit that does the work. See the workflow in `PLAN.md`
 
 ## Phase 5: Docs
 
-- [ ] README: how to start, the seed users, curl examples with a date far in the future
-- [ ] DECISIONS.md: choices, the CQRS trade-off, what was left out, what breaks first at 100 schools, AI use (max 2 pages)
+- [x] README: how to start, the seed users, curl examples with a date far in the future
+- [x] DECISIONS.md: choices, the CQRS trade-off, what was left out, what breaks first at 100 schools, AI use (max 2 pages)
