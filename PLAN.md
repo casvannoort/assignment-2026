@@ -57,6 +57,8 @@ Plain Postgres views (not projection tables or event sourcing, see DECISIONS.md)
 | `slot_availability` | parent's slot list: capacity, booked count, free places |
 | `child_bookings` | parent's bookings: all bookings of their children |
 
+Access checks live in the services, not the controllers: commands check writes, query services check reads. A controller only checks the role (teacher or parent).
+
 Queries that depend on "today" (upcoming evenings) get the date from the `Clock` as a parameter, not from `CURRENT_DATE`.
 
 ## Layers
@@ -80,7 +82,7 @@ db/           aggregate repository: load (locked), save, and the overlap checks 
 7. A child is linked to their teachers (seed data). A parent sees and books only evenings of their children's teachers.
 8. A child cannot have two overlapping bookings, also not across evenings of different teachers. This holds per child, not per parent: two parents can split up.
 9. A teacher cannot have two overlapping evenings.
-10. An evening has passed once its end time has passed. After that it cannot be booked, moved or cancelled.
+10. An evening has passed once its end time has passed. After that it cannot be booked, moved or cancelled, and its slots cannot be removed.
 
 ## API
 
