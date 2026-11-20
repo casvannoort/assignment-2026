@@ -17,3 +17,7 @@ The problem itself is small, though, and full DDD brings ceremony that a four-ho
 | Ubiquitous language (conversation, booking) | Mappers between domain, persistence and API models where they are not needed |
 
 CQRS keeps the aggregate small: it only handles writes, and reads come straight from Postgres views.
+
+## Left out on purpose
+
+- **One conversation length per evening.** All slots of an evening have the same length, but each evening can have its own. A teacher cannot plan a single longer conversation within an evening. Supporting that means either letting a child book two adjacent slots (relaxing "one booking per child per evening") or giving slots their own length.
