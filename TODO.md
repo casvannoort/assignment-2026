@@ -8,7 +8,7 @@ Tick a todo in the same commit that does the work. See the workflow in `PLAN.md`
 - [x] `Dockerfile` and `docker-compose.yml` that run the app and Postgres
 - [x] Flyway V1: schema (teacher, parent, child, parent_child, teacher_child, evening, slot, booking, unique index `(evening_id, child_id)`)
 - [x] Flyway V2: seed data (2 teachers, 4 parents, 3 children; one child with two parents, one parent with two children, one parent unrelated to the two-parent child; teacher–child links)
-- [ ] Testcontainers base test: the app starts against a real Postgres
+- [x] Testcontainers base test: the app starts against a real Postgres
 
 ## Phase 1: Teacher creates an evening
 
