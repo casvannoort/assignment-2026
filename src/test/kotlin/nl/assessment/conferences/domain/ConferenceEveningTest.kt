@@ -206,7 +206,7 @@ class ConferenceEveningTest {
         val evening = evening("19:00", "20:00", 15)
         val brk = evening.slots[2].id
 
-        evening.removeSlot(brk)
+        evening.removeSlot(brk, now)
 
         assertEquals(listOf("19:00-19:15", "19:15-19:30", "19:45-20:00"), evening.slotTimes())
         assertFailsWith<SlotNotFound> { evening.book(emma, anna, brk, now) }
@@ -217,12 +217,20 @@ class ConferenceEveningTest {
         val evening = evening("19:00", "20:00", 15)
         evening.book(emma, anna, evening.slots[0].id, now)
 
-        assertFailsWith<SlotHasBookings> { evening.removeSlot(evening.slots[0].id) }
+        assertFailsWith<SlotHasBookings> { evening.removeSlot(evening.slots[0].id, now) }
         assertEquals(4, evening.slots.size)
     }
 
     @Test
     fun `removing an unknown slot fails`() {
-        assertFailsWith<SlotNotFound> { evening("19:00", "20:00", 15).removeSlot(SlotId.new()) }
+        assertFailsWith<SlotNotFound> { evening("19:00", "20:00", 15).removeSlot(SlotId.new(), now) }
+    }
+
+    @Test
+    fun `no removing slots once the evening has ended`() {
+        val evening = evening("19:00", "20:00", 15)
+        val afterwards = LocalDateTime.of(date, LocalTime.parse("21:00"))
+
+        assertFailsWith<EveningHasEnded> { evening.removeSlot(evening.slots[0].id, afterwards) }
     }
 }
