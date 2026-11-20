@@ -34,7 +34,7 @@ Tick a todo in the same commit that does the work. See the workflow in `PLAN.md`
 - [x] Integration (through the command): two concurrent bookings on the last place give one success and one `SLOT_FULL`
 - [x] Integration (through the command): the same child booked at two teachers at the same time gives one success and one `CHILD_DOUBLE_BOOKED`
 - [x] View `slot_availability` + `GET /evenings/{id}/slots`
-- [ ] `POST /evenings/{id}/bookings`
+- [x] `POST /evenings/{id}/bookings`
 - [ ] View `child_bookings` + `GET /bookings`
 - [ ] E2E: a parent books, the second parent of the child sees the booking
 

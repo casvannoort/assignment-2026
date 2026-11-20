@@ -15,6 +15,7 @@ import org.springframework.http.ResponseEntity
 import org.springframework.http.converter.HttpMessageNotReadableException
 import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.bind.annotation.RestControllerAdvice
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException
 
 class Unauthenticated : RuntimeException("unknown or missing X-User-Id")
 
@@ -39,7 +40,7 @@ class ErrorHandler {
     fun unauthenticated(e: Unauthenticated) =
         ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(ErrorResponse("UNAUTHENTICATED", e.message!!))
 
-    @ExceptionHandler
-    fun unreadable(e: HttpMessageNotReadableException) =
-        ResponseEntity.badRequest().body(ErrorResponse("INVALID_REQUEST", "request body is missing fields or is not valid JSON"))
+    @ExceptionHandler(HttpMessageNotReadableException::class, MethodArgumentTypeMismatchException::class)
+    fun invalidRequest() =
+        ResponseEntity.badRequest().body(ErrorResponse("INVALID_REQUEST", "request has missing or malformed fields"))
 }
