@@ -40,6 +40,11 @@ class ConferenceEvening(
         return moved
     }
 
+    fun cancel(bookingId: BookingId, now: LocalDateTime) {
+        if (hasEnded(now)) throw EveningHasEnded()
+        _bookings.remove(booking(bookingId))
+    }
+
     fun booking(id: BookingId) = _bookings.find { it.id == id } ?: throw BookingNotFound()
 
     private fun ensureRoomIn(slotId: SlotId) {
