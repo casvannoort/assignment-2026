@@ -11,8 +11,6 @@ import org.springframework.web.method.support.ModelAndViewContainer
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer
 import java.util.UUID
 
-class Unauthenticated : RuntimeException("unknown or missing X-User-Id")
-
 /** Resolves the `User` parameter of a controller method from the `X-User-Id` header. No real login. */
 @Configuration
 class CurrentUserResolver(private val users: UserDirectory) : HandlerMethodArgumentResolver, WebMvcConfigurer {
