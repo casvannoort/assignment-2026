@@ -1,7 +1,9 @@
 package nl.assessment.conferences.db
 
 import nl.assessment.conferences.TestcontainersConfiguration
+import nl.assessment.conferences.domain.ChildId
 import nl.assessment.conferences.domain.ConferenceEvening
+import nl.assessment.conferences.domain.ParentId
 import nl.assessment.conferences.domain.TeacherId
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -56,5 +58,18 @@ class ConferenceEveningRepositoryTest(@Autowired private val repository: Confere
     @Test
     fun `finds nothing for an unknown id`() {
         assertNull(repository.findById(newEvening().id))
+    }
+
+    @Test
+    fun `saves and loads the bookings of an evening`() {
+        val emma = ChildId(UUID.fromString("00000000-0000-0000-0000-000000000301"))
+        val anna = ParentId(UUID.fromString("00000000-0000-0000-0000-000000000201"))
+        val evening = newEvening()
+        val booking = evening.book(emma, anna, evening.slots[2].id, LocalDateTime.parse("2030-03-01T12:00"))
+
+        repository.save(evening)
+        repository.save(evening)
+
+        assertEquals(listOf(booking), assertNotNull(repository.findById(evening.id)).bookings)
     }
 }
