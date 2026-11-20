@@ -64,7 +64,7 @@ Tick a todo in the same commit that does the work. See the workflow in `PLAN.md`
 ## Simulation (branch `simulation`, see `SIMULATION.md`)
 
 - [x] Harness: `simulation` Gradle task and tag, `MutableClock`, copy of the assignment
-- [ ] School generator: deterministic school, insert and reset
+- [x] School generator: deterministic school, insert and reset
 - [ ] API client and consistency checker (before/after per request)
 - [ ] Layer 2 invariants, each proven by a test that breaks the database on purpose
 - [ ] Layer 1 assignment checks, one per assignment item
