@@ -58,6 +58,7 @@ val simulation by tasks.registering(Test::class) {
     classpath = sourceSets.test.get().runtimeClasspath
     useJUnitPlatform { includeTags("simulation") }
     systemProperty("seed", findProperty("seed") ?: "1")
+    systemProperty("seeds", findProperty("seeds") ?: "1")
     systemProperty("steps", findProperty("steps") ?: "300")
     outputs.upToDateWhen { false }
 }

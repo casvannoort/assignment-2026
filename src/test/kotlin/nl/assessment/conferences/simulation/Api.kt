@@ -11,6 +11,7 @@ import java.util.UUID
 data class Reply(val status: Int, val body: JsonNode?) {
     val code: String? get() = body?.get("code")?.asString()
     fun id(): UUID = UUID.fromString(body!!["id"].asString())
+    fun idOrNull(): UUID? = body?.get("id")?.asString()?.let(UUID::fromString)
 }
 
 /** Talks to the running app over real HTTP, like a client would. */
