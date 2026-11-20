@@ -60,4 +60,14 @@ class SequentialSimulationTest(
         assertTrue(run.log.any { "other-evening" in it }, "no cross-evening requests")
         assertTrue((run.outcomes["BOOKING_NOT_FOUND"] ?: 0) > 0, "BOOKING_NOT_FOUND never reached")
     }
+
+    @Test
+    fun `a step that throws is recorded as a finding and the run goes on`() {
+        val unreachable = SequentialSimulator(Api(port = 1), jdbc, clock)
+
+        val run = unreachable.run(seed = 1, steps = 5)
+
+        assertEquals(5, run.log.size)
+        assertTrue(run.findings.isNotEmpty() && run.findings.all { it.check == "crash" })
+    }
 }
