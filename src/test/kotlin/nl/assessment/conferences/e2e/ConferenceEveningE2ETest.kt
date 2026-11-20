@@ -1,5 +1,6 @@
 package nl.assessment.conferences.e2e
 
+import nl.assessment.conferences.TestDates
 import nl.assessment.conferences.TestcontainersConfiguration
 import org.junit.jupiter.api.Test
 import org.springframework.boot.test.context.SpringBootTest
@@ -8,8 +9,6 @@ import org.springframework.context.annotation.Import
 import org.springframework.http.MediaType
 import org.springframework.web.client.RestClient
 import org.springframework.web.client.body
-import java.time.LocalDate
-import kotlin.random.Random
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
 
@@ -20,7 +19,7 @@ class ConferenceEveningE2ETest(@LocalServerPort port: Int) {
 
     private val http = RestClient.create("http://localhost:$port")
     private val msJansen = "00000000-0000-0000-0000-000000000101"
-    private val date = LocalDate.parse("2030-01-01").plusDays(Random.nextLong(10_000))
+    private val date = TestDates.unique()
 
     @Test
     fun `a teacher creates an evening and sees it in the list`() {

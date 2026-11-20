@@ -1,5 +1,6 @@
 package nl.assessment.conferences.web
 
+import nl.assessment.conferences.TestDates
 import nl.assessment.conferences.TestcontainersConfiguration
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -14,9 +15,7 @@ import org.springframework.test.web.servlet.get
 import org.springframework.test.web.servlet.post
 import org.hamcrest.Matchers.hasItem
 import org.hamcrest.Matchers.not
-import java.time.LocalDate
 import java.util.UUID
-import kotlin.random.Random
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -28,7 +27,7 @@ class EveningApiTest(@Autowired private val mvc: MockMvc, @Autowired private val
     private val anna = "00000000-0000-0000-0000-000000000201"
     private val kees = "00000000-0000-0000-0000-000000000204" // only Lisa's parent, Lisa only has Mr. de Vries
 
-    private val date = LocalDate.parse("2030-01-01").plusDays(Random.nextLong(10_000))
+    private val date = TestDates.unique()
 
     private fun createEvening(user: String?, start: String = "19:00", end: String = "20:00") =
         mvc.post("/evenings") {

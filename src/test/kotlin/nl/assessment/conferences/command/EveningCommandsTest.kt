@@ -1,5 +1,6 @@
 package nl.assessment.conferences.command
 
+import nl.assessment.conferences.TestDates
 import nl.assessment.conferences.TestcontainersConfiguration
 import nl.assessment.conferences.db.ConferenceEveningRepository
 import nl.assessment.conferences.domain.EveningOverlaps
@@ -9,12 +10,10 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.context.annotation.Import
 import java.time.Duration
-import java.time.LocalDate
 import java.time.LocalTime
 import java.util.UUID
 import java.util.concurrent.Callable
 import java.util.concurrent.Executors
-import kotlin.random.Random
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertNotNull
@@ -29,8 +28,7 @@ class EveningCommandsTest(
     private val msJansen = TeacherId(UUID.fromString("00000000-0000-0000-0000-000000000101"))
     private val mrDeVries = TeacherId(UUID.fromString("00000000-0000-0000-0000-000000000102"))
 
-    // Commands commit, so every test uses its own date to stay independent.
-    private val date = LocalDate.parse("2030-01-01").plusDays(Random.nextLong(10_000))
+    private val date = TestDates.unique()
 
     private fun create(teacher: TeacherId, start: String, end: String) = commands.create(
         teacher, date, LocalTime.parse(start), LocalTime.parse(end), Duration.ofMinutes(15), capacity = 1,
