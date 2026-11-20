@@ -3,6 +3,7 @@ package nl.assessment.conferences.command
 import nl.assessment.conferences.TestDates
 import nl.assessment.conferences.TestcontainersConfiguration
 import nl.assessment.conferences.db.ConferenceEveningRepository
+import nl.assessment.conferences.domain.ChildDoubleBooked
 import nl.assessment.conferences.domain.ChildId
 import nl.assessment.conferences.domain.EveningId
 import nl.assessment.conferences.domain.EveningNotFound
@@ -15,6 +16,7 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.context.annotation.Import
 import java.time.Duration
+import java.time.LocalDate
 import java.time.LocalTime
 import java.util.UUID
 import kotlin.test.assertEquals
@@ -33,13 +35,14 @@ class BookingCommandsTest(
     private val msJansen = TeacherId(id(101))
     private val mrDeVries = TeacherId(id(102))
     private val anna = ParentId(id(201))
+    private val mark = ParentId(id(202))
     private val sara = ParentId(id(203))
     private val kees = ParentId(id(204))
     private val emma = ChildId(id(301))
     private val daan = ChildId(id(302))
 
-    private fun eveningOf(teacher: TeacherId) = evenings.create(
-        teacher, TestDates.unique(), LocalTime.parse("19:00"), LocalTime.parse("20:00"), Duration.ofMinutes(15), 1,
+    private fun eveningOf(teacher: TeacherId, date: LocalDate = TestDates.unique()) = evenings.create(
+        teacher, date, LocalTime.parse("19:00"), LocalTime.parse("20:00"), Duration.ofMinutes(15), 1,
     )
 
     @Test
@@ -68,5 +71,16 @@ class BookingCommandsTest(
     @Test
     fun `booking at an unknown evening fails`() {
         assertFailsWith<EveningNotFound> { bookings.book(anna, EveningId.new(), emma, SlotId.new()) }
+    }
+
+    @Test
+    fun `a child cannot be booked at two teachers at the same time`() {
+        val date = TestDates.unique()
+        val atJansen = eveningOf(msJansen, date)
+        val atDeVries = eveningOf(mrDeVries, date)
+        bookings.book(anna, atJansen.id, emma, atJansen.slots[0].id) // 19:00-19:15
+
+        assertFailsWith<ChildDoubleBooked> { bookings.book(mark, atDeVries.id, emma, atDeVries.slots[0].id) }
+        bookings.book(mark, atDeVries.id, emma, atDeVries.slots[1].id) // 19:15-19:30 only touches, so it is fine
     }
 }
