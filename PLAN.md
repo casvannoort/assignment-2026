@@ -49,7 +49,7 @@ ConferenceEvening (aggregate root)        conversationLength
 
 ## Read side (CQRS)
 
-Postgres views, created in Flyway, read by small query services with JdbcTemplate:
+Plain Postgres views (not projection tables or event sourcing, see DECISIONS.md), created in Flyway, read by small query services with JdbcTemplate. Every read goes through a view:
 
 | View | Used by |
 |---|---|
