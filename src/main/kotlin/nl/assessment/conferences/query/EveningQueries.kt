@@ -22,14 +22,11 @@ data class EveningSummary(
 @Service
 class EveningQueries(private val jdbc: JdbcTemplate, private val clock: Clock) {
 
-    private val select = """
-        SELECT e.id, t.name AS teacher_name, e.date, e.start_time, e.end_time, e.conversation_minutes
-        FROM evening e JOIN teacher t ON t.id = e.teacher_id
-    """
+    private val select = "SELECT * FROM evening_summary"
 
     fun evenings(user: User): List<EveningSummary> = when (user) {
         is User.Teacher -> jdbc.query(
-            "$select WHERE e.teacher_id = ? ORDER BY e.date, e.start_time",
+            "$select WHERE teacher_id = ? ORDER BY date, start_time",
             ::summary, user.id.value,
         )
         is User.Parent -> {
@@ -37,13 +34,13 @@ class EveningQueries(private val jdbc: JdbcTemplate, private val clock: Clock) {
             jdbc.query(
                 """
                 $select
-                WHERE e.teacher_id IN (
+                WHERE teacher_id IN (
                     SELECT tc.teacher_id FROM teacher_child tc
                     JOIN parent_child pc ON pc.child_id = tc.child_id
                     WHERE pc.parent_id = ?
                 )
-                AND (e.date > ? OR (e.date = ? AND e.end_time > ?))
-                ORDER BY e.date, e.start_time
+                AND (date > ? OR (date = ? AND end_time > ?))
+                ORDER BY date, start_time
                 """,
                 ::summary, user.id.value, now.toLocalDate(), now.toLocalDate(), now.toLocalTime(),
             )
