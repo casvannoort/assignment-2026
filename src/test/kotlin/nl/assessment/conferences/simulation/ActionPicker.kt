@@ -14,13 +14,36 @@ data class State(val evenings: List<UUID>, val snapshot: Snapshot, val now: Loca
  */
 data class Pick(val action: Action, val describe: String, val evening: UUID? = null)
 
+/**
+ * Picks random steps, mostly sensible ones, plus on purpose: the wrong role, an unknown user,
+ * a slot or booking addressed through another evening, and slots that were removed earlier.
+ */
 class ActionPicker(private val random: Random, private val school: School) {
+
+    private val removed = mutableListOf<Pair<UUID, UUID>>()
+
+    /** The simulator reports removed slots, so later steps can try to use them. */
+    fun slotRemoved(evening: UUID, slot: UUID) {
+        removed += evening to slot
+    }
 
     private fun <T> List<T>.pick() = this[random.nextInt(size)]
     private fun chance(percent: Int) = random.nextInt(100) < percent
-    private fun teacher(id: UUID) = "teacher#${school.teachers.indexOf(id)}"
-    private fun parent(id: UUID) = school.parents.indexOf(id).let { if (it < 0) "unknown" else "parent#$it" }
-    private fun child(id: UUID) = "child#${school.children.indexOf(id)}"
+    private fun name(id: UUID) = when (id) {
+        in school.teachers -> "teacher#${school.teachers.indexOf(id)}"
+        in school.parents -> "parent#${school.parents.indexOf(id)}"
+        else -> "unknown"
+    }
+
+    /** Usually the intended person; sometimes someone of the other role, or a user the app does not know. */
+    private fun actor(intended: UUID): Pair<UUID, String> {
+        val roll = random.nextInt(100)
+        return when {
+            roll < 4 -> (if (intended in school.teachers) school.parents else school.teachers).pick().let { it to "${name(it)} wrong-role" }
+            roll < 6 -> UUID.randomUUID() to "unknown"
+            else -> intended to name(intended)
+        }
+    }
 
     fun next(state: State): Pick {
         val roll = random.nextInt(100)
@@ -44,8 +67,27 @@ class ActionPicker(private val random: Random, private val school: School) {
             { b -> state.snapshot.slots.first { it.id == b.slot }.start }, { school.children.indexOf(it.child) }),
     )
 
+    private fun otherEvening(state: State, than: UUID) = state.evenings.filter { it != than }.ifEmpty { null }?.pick()
+
+    /** A slot for `evening`: mostly its own, sometimes one of another evening, a removed one, or one that never existed. */
+    private fun slotFor(state: State, evening: UUID): Pair<UUID, String> {
+        val roll = random.nextInt(100)
+        val own = slotsOf(state, evening)
+        val other = otherEvening(state, evening)?.let { slotsOf(state, it) }.orEmpty()
+        return when {
+            roll < 5 && other.isNotEmpty() -> other.pick().id to "other-evening slot"
+            roll < 10 && removed.isNotEmpty() -> removed.pick().second to "removed-slot"
+            roll < 13 || own.isEmpty() -> UUID.randomUUID() to "unknown slot"
+            else -> own.indices.toList().pick().let { own[it].id to "slot#$it" }
+        }
+    }
+
+    /** The evening in the URL: mostly the right one, sometimes another. */
+    private fun urlEvening(state: State, right: UUID): Pair<UUID, String> =
+        if (chance(10)) otherEvening(state, right)?.let { it to "via other-evening" } ?: (right to "") else right to ""
+
     private fun create(state: State): Pick {
-        val teacher = school.teachers.pick()
+        val (teacher, who) = actor(school.teachers.pick())
         val day = if (chance(5)) -1L else random.nextLong(0, 3)
         val start = LocalTime.of(random.nextInt(17, 21), 0)
         var length = listOf(40L, 60L, 90L).pick()
@@ -56,21 +98,19 @@ class ActionPicker(private val random: Random, private val school: School) {
         val action = Action.CreateEvening(
             teacher, state.now.toLocalDate().plusDays(day), start, start.plusMinutes(length), minutes, capacity,
         )
-        return Pick(action, "create ${teacher(teacher)} day${if (day >= 0) "+" else ""}$day $start ${length}min by $minutes cap $capacity")
+        return Pick(action, "create $who day${if (day >= 0) "+" else ""}$day $start ${length}min by $minutes cap $capacity")
     }
 
     private fun book(state: State): Pick {
-        val parent = if (chance(2)) UUID.randomUUID() else school.parents.pick()
-        val own = school.childrenOf(parent)
+        val (parent, who) = actor(school.parents.pick())
+        val own = if (parent in school.parents) school.childrenOf(parent) else emptyList()
         val child = if (own.isNotEmpty() && chance(85)) own.pick() else school.children.pick()
         val eveningIndex = state.evenings.indices.toList().pick()
         val evening = state.evenings[eveningIndex]
-        val slots = slotsOf(state, evening)
-        val (slot, slotName) = if (slots.isEmpty() || chance(3)) UUID.randomUUID() to "unknown" else
-            slots.indices.toList().pick().let { slots[it].id to "slot#$it" }
+        val (slot, slotName) = slotFor(state, evening)
         return Pick(
             Action.Book(parent, evening, child, slot),
-            "book ${parent(parent)} ${child(child)} evening#$eveningIndex $slotName", evening,
+            "book $who child#${school.children.indexOf(child)} evening#$eveningIndex $slotName", evening,
         )
     }
 
@@ -78,35 +118,28 @@ class ActionPicker(private val random: Random, private val school: School) {
         val all = bookings(state).ifEmpty { return null }
         val index = all.indices.toList().pick()
         val booking = all[index]
-        val parent = if (chance(85)) school.parentsOf.getValue(booking.child).pick() else school.parents.pick()
-        val slots = slotsOf(state, booking.evening)
-        val target = slots.indices.toList().pick()
-        return Pick(
-            Action.Move(parent, booking.evening, booking.id, slots[target].id),
-            "move ${parent(parent)} booking#$index slot#$target", booking.evening,
-        )
+        val (parent, who) = actor(if (chance(85)) school.parentsOf.getValue(booking.child).pick() else school.parents.pick())
+        val (slot, slotName) = slotFor(state, booking.evening)
+        val (evening, via) = urlEvening(state, booking.evening)
+        return Pick(Action.Move(parent, evening, booking.id, slot), "move $who booking#$index $slotName $via".trim(), evening)
     }
 
     private fun cancel(state: State): Pick? {
         val all = bookings(state).ifEmpty { return null }
         val index = all.indices.toList().pick()
         val booking = all[index]
-        val parent = if (chance(85)) school.parentsOf.getValue(booking.child).pick() else school.parents.pick()
-        return Pick(Action.Cancel(parent, booking.evening, booking.id), "cancel ${parent(parent)} booking#$index", booking.evening)
+        val (parent, who) = actor(if (chance(85)) school.parentsOf.getValue(booking.child).pick() else school.parents.pick())
+        val (evening, via) = urlEvening(state, booking.evening)
+        return Pick(Action.Cancel(parent, evening, booking.id), "cancel $who booking#$index $via".trim(), evening)
     }
 
     private fun removeSlot(state: State): Pick {
         val eveningIndex = state.evenings.indices.toList().pick()
         val evening = state.evenings[eveningIndex]
         val owner = state.snapshot.evenings.first { it.id == evening }.teacher
-        val teacher = if (chance(80)) owner else school.teachers.pick()
-        val slots = slotsOf(state, evening)
-        if (slots.isEmpty()) return read(state)
-        val index = slots.indices.toList().pick()
-        return Pick(
-            Action.RemoveSlot(teacher, evening, slots[index].id),
-            "remove ${teacher(teacher)} evening#$eveningIndex slot#$index", evening,
-        )
+        val (teacher, who) = actor(if (chance(80)) owner else school.teachers.pick())
+        val (slot, slotName) = slotFor(state, evening)
+        return Pick(Action.RemoveSlot(teacher, evening, slot), "remove $who evening#$eveningIndex $slotName", evening)
     }
 
     private fun read(state: State): Pick {
@@ -116,14 +149,14 @@ class ActionPicker(private val random: Random, private val school: School) {
         return when (random.nextInt(4)) {
             0 -> {
                 val user = if (chance(5)) null else (school.teachers + school.parents).pick()
-                Pick(Action.Read(user, "/evenings"), "list evenings ${user?.let { if (it in school.teachers) teacher(it) else parent(it) } ?: "nobody"}")
+                Pick(Action.Read(user, "/evenings"), "list evenings ${user?.let(::name) ?: "nobody"}")
             }
-            1 -> school.parents.pick().let { Pick(Action.Read(it, "/bookings"), "list bookings ${parent(it)}") }
-            2 -> school.parents.pick().let {
-                Pick(Action.Read(it, "/evenings/$evening/slots"), "free slots ${parent(it)} evening#$eveningIndex", evening)
+            1 -> actor(school.parents.pick()).let { (u, who) -> Pick(Action.Read(u, "/bookings"), "list bookings $who") }
+            2 -> actor(school.parents.pick()).let { (u, who) ->
+                Pick(Action.Read(u, "/evenings/$evening/slots"), "free slots $who evening#$eveningIndex", evening)
             }
-            else -> (if (chance(70)) owner else school.teachers.pick()).let {
-                Pick(Action.Read(it, "/evenings/$evening/overview"), "overview ${teacher(it)} evening#$eveningIndex", evening)
+            else -> actor(if (chance(70)) owner else school.teachers.pick()).let { (u, who) ->
+                Pick(Action.Read(u, "/evenings/$evening/overview"), "overview $who evening#$eveningIndex", evening)
             }
         }
     }

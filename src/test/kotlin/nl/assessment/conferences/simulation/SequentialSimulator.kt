@@ -33,6 +33,7 @@ class SequentialSimulator(private val api: Api, private val jdbc: JdbcTemplate, 
             val reply = if (action is Action.AdvanceClock) null.also { clock.advance(Duration.ofMinutes(action.minutes)) }
             else api.send(action)
             if (action is Action.CreateEvening && reply?.status == 201) evenings += reply.id()
+            if (action is Action.RemoveSlot && reply?.status == 204) picker.slotRemoved(action.evening, action.slot)
             val after = Snapshot.take(jdbc)
 
             val found = mutableListOf<Finding>()
