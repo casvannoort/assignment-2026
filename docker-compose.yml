@@ -1,0 +1,23 @@
+services:
+  db:
+    image: postgres:18
+    environment:
+      POSTGRES_DB: conferences
+      POSTGRES_USER: conferences
+      POSTGRES_PASSWORD: conferences
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "conferences"]
+      interval: 2s
+      retries: 15
+
+  app:
+    build: .
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/conferences
+    ports:
+      - "8080:8080"
+    depends_on:
+      db:
+        condition: service_healthy
