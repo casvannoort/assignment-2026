@@ -41,7 +41,7 @@ class EveningCommands(private val repository: ConferenceEveningRepository, priva
     fun removeSlot(teacherId: TeacherId, eveningId: EveningId, slotId: SlotId) {
         val evening = repository.findById(eveningId) ?: throw EveningNotFound()
         if (evening.teacherId != teacherId) throw Forbidden("not your evening")
-        evening.removeSlot(slotId)
+        evening.removeSlot(slotId, LocalDateTime.now(clock))
         repository.save(evening)
     }
 }

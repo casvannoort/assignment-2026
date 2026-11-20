@@ -48,7 +48,8 @@ class ConferenceEvening(
         _bookings.remove(booking(bookingId))
     }
 
-    fun removeSlot(slotId: SlotId) {
+    fun removeSlot(slotId: SlotId, now: LocalDateTime) {
+        if (hasEnded(now)) throw EveningHasEnded()
         val slot = _slots.find { it.id == slotId } ?: throw SlotNotFound()
         if (_bookings.any { it.slotId == slotId }) throw SlotHasBookings()
         _slots.remove(slot)
