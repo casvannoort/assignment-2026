@@ -9,6 +9,7 @@ import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.boot.test.web.server.LocalServerPort
 import org.springframework.context.annotation.Import
 import org.springframework.jdbc.core.JdbcTemplate
+import tools.jackson.databind.json.JsonMapper
 import java.time.LocalDate
 import java.time.LocalTime
 import java.util.UUID
@@ -30,7 +31,7 @@ class ConsistencyTest(@Autowired private val jdbc: JdbcTemplate, @LocalServerPor
     @BeforeEach
     fun clean() = SchoolGenerator.reset(jdbc)
 
-    private fun <T> checked(action: Action, call: () -> Reply): List<Finding> {
+    private fun checked(action: Action, call: () -> Reply): List<Finding> {
         val before = Snapshot.take(jdbc)
         val reply = call()
         return Consistency.check(action, reply, before, Snapshot.take(jdbc))
@@ -40,7 +41,8 @@ class ConsistencyTest(@Autowired private val jdbc: JdbcTemplate, @LocalServerPor
         val create = Action.CreateEvening(msJansen, LocalDate.parse("2030-02-01"), LocalTime.parse("19:00"), LocalTime.parse("19:30"), 15, 1)
         val reply = api.send(create)
         assertEquals(emptyList(), Consistency.check(create, reply, Snapshot(emptySet(), emptySet(), emptySet()), Snapshot.take(jdbc)))
-        return UUID.fromString(reply.body!!["id"].asText()) to reply.body["slots"].map { UUID.fromString(it["id"].asText()) }
+        val slots = reply.body!!["slots"].values().map { UUID.fromString(it["id"].asString()) }
+        return reply.id() to slots
     }
 
     @Test
@@ -48,10 +50,10 @@ class ConsistencyTest(@Autowired private val jdbc: JdbcTemplate, @LocalServerPor
         val (evening, slots) = createEvening()
 
         val book = Action.Book(anna, evening, emma, slots[0])
-        assertEquals(emptyList(), checked<Unit>(book) { api.send(book) })
+        assertEquals(emptyList(), checked(book) { api.send(book) })
 
         val full = Action.Book(sara, evening, daan, slots[0])
-        val findings = checked<Unit>(full) { api.send(full).also { assertEquals(409, it.status) } }
+        val findings = checked(full) { api.send(full).also { assertEquals(409, it.status) } }
         assertEquals(emptyList(), findings)
     }
 
@@ -63,7 +65,7 @@ class ConsistencyTest(@Autowired private val jdbc: JdbcTemplate, @LocalServerPor
 
         val findings = Consistency.check(
             Action.Book(anna, evening, emma, slots[0]),
-            Reply(409, null),
+            Reply(409, JsonMapper.builder().build().readTree("""{"code": "SLOT_FULL"}""")),
             before,
             before.copy(bookings = before.bookings + sneaky),
         )
