@@ -84,16 +84,6 @@ class ConferenceEveningRepository(private val jdbc: JdbcTemplate) {
             childId.value, otherThan.value, date, time.end, time.start,
         )!!
 
-    fun isParentOf(parentId: ParentId, childId: ChildId): Boolean = jdbc.queryForObject(
-        "SELECT EXISTS (SELECT 1 FROM parent_child WHERE parent_id = ? AND child_id = ?)",
-        Boolean::class.java, parentId.value, childId.value,
-    )!!
-
-    fun isTeacherOf(teacherId: TeacherId, childId: ChildId): Boolean = jdbc.queryForObject(
-        "SELECT EXISTS (SELECT 1 FROM teacher_child WHERE teacher_id = ? AND child_id = ?)",
-        Boolean::class.java, teacherId.value, childId.value,
-    )!!
-
     /** Loads the evening and locks its row until the transaction ends (pessimistic lock). */
     fun findById(id: EveningId): ConferenceEvening? {
         // Lock first, so the slots and bookings read below cannot change until the transaction ends.
