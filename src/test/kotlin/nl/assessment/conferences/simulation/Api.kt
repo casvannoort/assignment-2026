@@ -44,6 +44,7 @@ class Api(port: Int) {
         val request = HttpRequest.newBuilder(URI.create(base + path))
             .method(method, body?.let { HttpRequest.BodyPublishers.ofString(it) } ?: HttpRequest.BodyPublishers.noBody())
             .header("Content-Type", "application/json")
+            .timeout(java.time.Duration.ofSeconds(30))
             .apply { user?.let { header("X-User-Id", it.toString()) } }
             .build()
         val response = client.send(request, HttpResponse.BodyHandlers.ofString())
