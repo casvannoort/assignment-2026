@@ -39,7 +39,7 @@ class SequentialSimulator(private val api: Api, private val jdbc: JdbcTemplate, 
             if (reply != null) {
                 found += Consistency.check(action, reply, before, after)
                 found += Refusals.check(action, reply, before, requestedAt, school)
-                found += assignmentChecks(pick, reply, after, school)
+                found += assignmentChecks(pick, reply, before, after, school, requestedAt)
             }
             found += Invariants.check(jdbc, now(), ended)
             // A broken state stays broken: report each violation once, at the step that caused it.
@@ -58,7 +58,7 @@ class SequentialSimulator(private val api: Api, private val jdbc: JdbcTemplate, 
 
     private fun now() = LocalDateTime.now(clock)
 
-    private fun assignmentChecks(pick: Pick, reply: Reply, after: Snapshot, school: School): List<Finding> {
+    private fun assignmentChecks(pick: Pick, reply: Reply, before: Snapshot, after: Snapshot, school: School, at: LocalDateTime): List<Finding> {
         val action = pick.action
         return when (action) {
             is Action.CreateEvening ->
@@ -75,7 +75,12 @@ class SequentialSimulator(private val api: Api, private val jdbc: JdbcTemplate, 
                     )
                 } ?: emptyList())
             }
-            is Action.Cancel -> AssignmentChecks.moveOrCancelTookEffect(action, reply, after)
+            is Action.Cancel -> AssignmentChecks.moveOrCancelTookEffect(action, reply, after) +
+                (before.bookings.firstOrNull { it.id == action.booking }?.takeIf { reply.status == 204 }?.let { cancelled ->
+                    AssignmentChecks.cancelledIsGone(
+                        cancelled.id, school.parentsOf.getValue(cancelled.child).associateWith { api.send(Action.Read(it, "/bookings")) },
+                    )
+                } ?: emptyList())
             is Action.RemoveSlot -> if (reply.status != 204) emptyList() else {
                 val viewer = school.children.firstOrNull { action.teacher in school.teachersOf.getValue(it) }
                     ?.let { school.parentsOf.getValue(it).first() }
@@ -87,7 +92,8 @@ class SequentialSimulator(private val api: Api, private val jdbc: JdbcTemplate, 
             }
             is Action.Read -> when {
                 action.path.endsWith("/slots") -> AssignmentChecks.freeSlotsHaveRoom(pick.evening!!, reply, after)
-                action.path.endsWith("/overview") -> AssignmentChecks.overviewShowsEverything(pick.evening!!, reply, after)
+                action.path.endsWith("/overview") -> AssignmentChecks.overviewShowsEverything(pick.evening!!, reply, after, school::nameOf)
+                action.path == "/evenings" -> AssignmentChecks.eveningListIsRight(action.user, reply, after, at, school)
                 else -> emptyList()
             }
             is Action.AdvanceClock -> emptyList()

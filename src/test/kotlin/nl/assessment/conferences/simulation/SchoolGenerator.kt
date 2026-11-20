@@ -12,6 +12,13 @@ data class School(
     val teachersOf: Map<UUID, List<UUID>>,
 ) {
     fun childrenOf(parent: UUID) = children.filter { parent in parentsOf.getValue(it) }
+
+    /** The names insert() gives: "Teacher 0", "Parent 3", "Child 7". */
+    fun nameOf(id: UUID) = when (id) {
+        in teachers -> "Teacher ${teachers.indexOf(id)}"
+        in parents -> "Parent ${parents.indexOf(id)}"
+        else -> "Child ${children.indexOf(id)}"
+    }
 }
 
 /** Generates a school from a seed. Families have 1 to 3 children and 1 or 2 parents; each child has 1 to 4 teachers. */

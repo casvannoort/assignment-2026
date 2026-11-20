@@ -20,9 +20,16 @@ object Consistency {
         }
         val expected = when (action) {
             is Action.Read, is Action.AdvanceClock -> before
+            // The stored evening must be the one requested, and the stored slots exactly the ones the reply shows.
             is Action.CreateEvening -> before.copy(
-                evenings = before.evenings + after.evenings.filter { it.id == reply.id() },
-                slots = before.slots + after.slots.filter { it.evening == reply.id() },
+                evenings = before.evenings + EveningRow(reply.id(), action.teacher, action.date, action.start, action.end, action.minutes.toInt()),
+                slots = before.slots + reply.body!!["slots"].values().map {
+                    SlotRow(
+                        java.util.UUID.fromString(it["id"].asString()), reply.id(),
+                        java.time.LocalTime.parse(it["start"].asString()), java.time.LocalTime.parse(it["end"].asString()),
+                        it["capacity"].asInt(),
+                    )
+                },
             )
             is Action.Book -> before.copy(
                 bookings = before.bookings + BookingRow(reply.id(), action.evening, action.slot, action.child, action.parent),

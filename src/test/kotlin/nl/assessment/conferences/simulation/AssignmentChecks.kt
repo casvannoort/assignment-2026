@@ -61,33 +61,64 @@ object AssignmentChecks {
         return listOfNotNull(finding(4, "move or cancel took effect", "$action did not take effect").takeIf { !ok })
     }
 
-    /** 5. A child can have more than one parent; every parent of the child sees the appointment. */
+    /** 5. A child can have more than one parent; every parent of the child sees the appointment, at its current time. */
     fun everyParentSeesBooking(snapshot: Snapshot, parentsOf: Map<UUID, List<UUID>>, bookingsOf: Map<UUID, Reply>): List<Finding> =
         snapshot.bookings.flatMap { booking ->
+            val start = snapshot.slots.first { it.id == booking.slot }.start
             parentsOf[booking.child].orEmpty().mapNotNull { parent ->
-                val seen = bookingsOf[parent]?.takeIf { it.status == 200 }?.body?.items()?.map { it.uuid("id") } ?: return@mapNotNull null
-                finding(5, "every parent sees the booking", "parent $parent does not see ${booking.id}").takeIf { booking.id !in seen }
+                val seen = bookingsOf[parent]?.takeIf { it.status == 200 }?.body?.items()
+                    ?.associate { it.uuid("id") to it.time("start") } ?: return@mapNotNull null
+                finding(5, "every parent sees the booking", "parent $parent sees ${booking.id} at ${seen[booking.id]}, expected $start")
+                    .takeIf { seen[booking.id] != start }
             }
         }
 
-    /** 6. A teacher sees which child comes when, and with which parent. */
-    fun overviewShowsEverything(evening: UUID, reply: Reply, snapshot: Snapshot): List<Finding> {
+    /** 5. After a cancel, no parent of the child still sees the appointment. */
+    fun cancelledIsGone(booking: UUID, bookingsOf: Map<UUID, Reply>): List<Finding> = bookingsOf.mapNotNull { (parent, reply) ->
+        val seen = reply.takeIf { it.status == 200 }?.body?.items()?.map { it.uuid("id") } ?: return@mapNotNull null
+        finding(5, "every parent sees the cancel", "parent $parent still sees cancelled $booking").takeIf { booking in seen }
+    }
+
+    /** 6. A teacher sees which child comes when, and with which parent: every slot, every booking, the right names, nothing extra. */
+    fun overviewShowsEverything(evening: UUID, reply: Reply, snapshot: Snapshot, nameOf: (UUID) -> String): List<Finding> {
         if (reply.status != 200) return emptyList()
         val rows = reply.body!!.items()
         val slotIds = rows.map { it.uuid("slotId") }.toSet()
         val expectedSlots = snapshot.slots.filter { it.evening == evening }.map { it.id }.toSet()
-        val missing = snapshot.bookings.filter { it.evening == evening }.filter { booking ->
+        val bookings = snapshot.bookings.filter { it.evening == evening }
+        val shown = rows.sumOf { it["conversations"].items().size }
+        val wrong = bookings.filter { booking ->
             rows.none { row ->
                 row.uuid("slotId") == booking.slot && row["conversations"].items().any {
-                    it.uuid("bookingId") == booking.id && it["childName"].asString().isNotBlank() && it["parentName"].asString().isNotBlank()
+                    it.uuid("bookingId") == booking.id && it["childName"].asString() == nameOf(booking.child) &&
+                        it["parentName"].asString() == nameOf(booking.bookedBy)
                 }
             }
         }
         return listOfNotNull(
             finding(6, "overview shows every slot", "evening $evening shows $slotIds, expected $expectedSlots")
                 .takeIf { slotIds != expectedSlots },
-            finding(6, "overview shows who comes when with which parent", "evening $evening misses ${missing.map { it.id }}")
-                .takeIf { missing.isNotEmpty() },
+            finding(6, "overview shows who comes when with which parent", "evening $evening wrong or missing ${wrong.map { it.id }}")
+                .takeIf { wrong.isNotEmpty() },
+            finding(6, "overview shows nothing extra", "evening $evening shows $shown conversations, expected ${bookings.size}")
+                .takeIf { shown != bookings.size },
+        )
+    }
+
+    /** Our rule: a teacher lists their own evenings, a parent the upcoming evenings of their children's teachers. */
+    fun eveningListIsRight(user: UUID?, reply: Reply, snapshot: Snapshot, now: java.time.LocalDateTime, school: School): List<Finding> {
+        if (reply.status != 200 || user == null) return emptyList()
+        val expected = when (user) {
+            in school.teachers -> snapshot.evenings.filter { it.teacher == user }
+            in school.parents -> snapshot.evenings.filter { e ->
+                java.time.LocalDateTime.of(e.date, e.end).isAfter(now) &&
+                    school.childrenOf(user).any { e.teacher in school.teachersOf.getValue(it) }
+            }
+            else -> return emptyList()
+        }.map { it.id }.toSet()
+        val actual = reply.body!!.items().map { it.uuid("id") }.toSet()
+        return listOfNotNull(
+            Finding("L2.8 evening lists", "user $user sees $actual, expected $expected").takeIf { actual != expected },
         )
     }
 
