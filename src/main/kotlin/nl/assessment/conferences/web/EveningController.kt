@@ -3,7 +3,6 @@ package nl.assessment.conferences.web
 import nl.assessment.conferences.command.EveningCommands
 import nl.assessment.conferences.domain.ConferenceEvening
 import nl.assessment.conferences.domain.EveningId
-import nl.assessment.conferences.domain.EveningNotFound
 import nl.assessment.conferences.domain.SlotId
 import nl.assessment.conferences.domain.Forbidden
 import nl.assessment.conferences.domain.User
@@ -63,9 +62,7 @@ class EveningController(
     @GetMapping("/{id}/slots")
     fun freeSlots(user: User, @PathVariable id: UUID): List<FreeSlot> {
         val parent = user as? User.Parent ?: throw Forbidden("teachers use the overview")
-        // A parent only gets slots of an evening that is in their own list: upcoming, at their children's teachers.
-        if (queries.evenings(parent).none { it.id == id }) throw EveningNotFound()
-        return slots.freeSlots(EveningId(id))
+        return slots.freeSlots(parent.id, EveningId(id))
     }
 
     @PostMapping
@@ -82,9 +79,7 @@ class EveningController(
     @GetMapping("/{id}/overview")
     fun overview(user: User, @PathVariable id: UUID): List<OverviewSlot> {
         val teacher = user as? User.Teacher ?: throw Forbidden("only teachers see the overview")
-        val owner = queries.teacherOf(id) ?: throw EveningNotFound()
-        if (owner != teacher.id.value) throw Forbidden("not your evening")
-        return queries.overview(id)
+        return queries.overview(teacher.id, id)
     }
 
     @DeleteMapping("/{id}/slots/{slotId}")

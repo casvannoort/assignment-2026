@@ -1,5 +1,8 @@
 package nl.assessment.conferences.query
 
+import nl.assessment.conferences.domain.EveningNotFound
+import nl.assessment.conferences.domain.Forbidden
+import nl.assessment.conferences.domain.TeacherId
 import nl.assessment.conferences.domain.User
 import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.stereotype.Service
@@ -57,14 +60,20 @@ class EveningQueries(private val jdbc: JdbcTemplate, private val clock: Clock) {
         }
     }
 
-    fun teacherOf(eveningId: UUID): UUID? = jdbc.query(
+    private fun teacherOf(eveningId: UUID): UUID? = jdbc.query(
         "SELECT teacher_id FROM evening_summary WHERE id = ?",
         { rs, _ -> rs.getObject("teacher_id", UUID::class.java) },
         eveningId,
     ).singleOrNull()
 
-    /** Every slot of the evening in time order, with its conversations (none for an empty slot). */
-    fun overview(eveningId: UUID): List<OverviewSlot> = jdbc.query(
+    /** Every slot of the evening in time order, with its conversations (none for an empty slot). Own evenings only. */
+    fun overview(teacherId: TeacherId, eveningId: UUID): List<OverviewSlot> {
+        val owner = teacherOf(eveningId) ?: throw EveningNotFound()
+        if (owner != teacherId.value) throw Forbidden("not your evening")
+        return overviewRows(eveningId)
+    }
+
+    private fun overviewRows(eveningId: UUID): List<OverviewSlot> = jdbc.query(
         "SELECT * FROM evening_overview WHERE evening_id = ? ORDER BY start_time",
         { rs, _ ->
             val conversation = rs.getObject("booking_id", UUID::class.java)?.let {
