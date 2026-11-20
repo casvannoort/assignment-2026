@@ -11,5 +11,10 @@ class TestcontainersConfiguration {
 
     @Bean
     @ServiceConnection
-    fun postgresContainer() = PostgreSQLContainer(DockerImageName.parse("postgres:18"))
+    fun postgresContainer() = postgres
+
+    companion object {
+        /** One Postgres for the whole test run, shared by every Spring context. */
+        private val postgres = PostgreSQLContainer(DockerImageName.parse("postgres:18"))
+    }
 }
