@@ -3,7 +3,9 @@ package nl.assessment.conferences.web
 import nl.assessment.conferences.command.EveningCommands
 import nl.assessment.conferences.domain.ConferenceEvening
 import nl.assessment.conferences.domain.User
+import nl.assessment.conferences.query.EveningQueries
 import org.springframework.http.HttpStatus
+import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
@@ -40,7 +42,10 @@ data class EveningResponse(
 
 @RestController
 @RequestMapping("/evenings")
-class EveningController(private val commands: EveningCommands) {
+class EveningController(private val commands: EveningCommands, private val queries: EveningQueries) {
+
+    @GetMapping
+    fun list(user: User) = queries.evenings(user)
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)

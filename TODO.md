@@ -20,7 +20,7 @@ Tick a todo in the same commit that does the work. See the workflow in `PLAN.md`
 - [x] Identity: `X-User-Id` resolves to a teacher or a parent; an unknown id gives `401`
 - [x] Command: create an evening; lock the teacher and reject an overlapping evening (`409 EVENING_OVERLAPS`)
 - [x] `POST /evenings` (teacher only) with error mapping `400` / `403` / `409`
-- [ ] `GET /evenings`: a teacher sees their own evenings, a parent sees upcoming evenings of their children's teachers (date from the `Clock`)
+- [x] `GET /evenings`: a teacher sees their own evenings, a parent sees upcoming evenings of their children's teachers (date from the `Clock`)
 - [ ] E2E: a teacher creates an evening and sees it in the list
 
 ## Phase 2: Parent books a conversation
