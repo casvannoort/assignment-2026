@@ -21,7 +21,10 @@ class ConferenceEvening(
     private val _bookings = bookings.toMutableList()
     val bookings: List<Booking> get() = _bookings.toList()
 
+    fun hasEnded(now: LocalDateTime) = !LocalDateTime.of(date, time.end).isAfter(now)
+
     fun book(childId: ChildId, parentId: ParentId, slotId: SlotId, now: LocalDateTime): Booking {
+        if (hasEnded(now)) throw EveningHasEnded()
         val slot = slots.find { it.id == slotId } ?: throw SlotNotFound()
         if (_bookings.any { it.childId == childId }) throw ChildAlreadyBooked()
         if (_bookings.count { it.slotId == slotId } >= slot.capacity) throw SlotFull()
@@ -42,7 +45,6 @@ class ConferenceEvening(
             if (conversationLength <= Duration.ZERO) throw InvalidEvening("conversation length must be positive")
             if (conversationLength > Duration.between(start, end)) throw InvalidEvening("conversation length does not fit in the evening")
             if (capacity < 1) throw InvalidEvening("capacity must be at least 1")
-            if (!LocalDateTime.of(date, end).isAfter(now)) throw InvalidEvening("evening has already ended")
 
             val count = Duration.between(start, end).dividedBy(conversationLength)
             val slots = (0 until count).map { i ->
@@ -50,6 +52,7 @@ class ConferenceEvening(
                 Slot(SlotId.new(), TimeRange(slotStart, slotStart.plus(conversationLength)), capacity)
             }
             return ConferenceEvening(EveningId.new(), teacherId, date, TimeRange(start, end), conversationLength, slots)
+                .also { if (it.hasEnded(now)) throw InvalidEvening("evening has already ended") }
         }
     }
 }
