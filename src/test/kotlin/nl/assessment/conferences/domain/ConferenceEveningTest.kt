@@ -106,4 +106,14 @@ class ConferenceEveningTest {
         assertFailsWith<SlotNotFound> { evening.book(emma, anna, SlotId.new(), now) }
         assertTrue(evening.bookings.isEmpty())
     }
+
+    @Test
+    fun `a child has at most one booking per evening`() {
+        val evening = evening("19:00", "20:00", 15)
+        val mark = ParentId(UUID.randomUUID())
+        evening.book(emma, anna, evening.slots[0].id, now)
+
+        assertFailsWith<ChildAlreadyBooked> { evening.book(emma, mark, evening.slots[1].id, now) }
+        assertEquals(1, evening.bookings.size)
+    }
 }
