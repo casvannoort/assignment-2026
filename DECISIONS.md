@@ -2,7 +2,7 @@
 
 ## Choices and why
 
-**Stack.** Kotlin, Spring Boot, JdbcTemplate, Flyway and PostgreSQL, run with Docker Compose. These are widely used tools, and close to the stack at Infowijs. JdbcTemplate instead of JPA: plain SQL stays visible and there is no mapping magic. Postgres because the core problem is concurrent bookings, and a real database with row locks solves that properly.
+**Stack.** Kotlin, Spring Boot, JdbcTemplate, Flyway and PostgreSQL in Docker Compose: widely used, and close to the Infowijs stack. JdbcTemplate over JPA keeps the SQL visible. Postgres because the core problem is concurrent bookings, which row locks solve properly.
 
 **DDD-lite.** The domain has rules that must hold together: slot capacity, one booking per child per evening, no removing a slot with bookings, moving as one atomic change. One aggregate, `ConferenceEvening`, guards them in pure Kotlin, so they are unit tested without a database. Only the parts that prevent bugs are used:
 
@@ -30,7 +30,7 @@
 - Identity comes from one header, `X-User-Id`; the role follows from the seed data.
 - Times are the school's local time; the `Clock` is fixed to `Europe/Amsterdam`.
 
-**Tests.** TDD: each todo is a failing `test:` commit, then the commit that makes it pass. Mostly domain unit tests; commands, repository and views against a real Postgres (Testcontainers); a few end-to-end tests over HTTP.
+**Tests.** TDD: for each rule a failing `test:` commit, then the commit that makes it pass (setup and end-to-end tests had no red step). Of the 80 tests, 27 are pure domain tests, 27 run commands, repository and views against a real Postgres (Testcontainers), 22 test the HTTP layer and 4 are end-to-end. The middle is heavier than a classic pyramid, because the locks and views only prove themselves against a real database.
 
 ## Left out on purpose
 
