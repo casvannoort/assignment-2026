@@ -11,6 +11,7 @@ import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.http.MediaType
 import com.jayway.jsonpath.JsonPath
 import org.springframework.test.web.servlet.MockMvc
+import org.springframework.test.web.servlet.delete
 import org.springframework.test.web.servlet.get
 import org.springframework.test.web.servlet.post
 import org.hamcrest.Matchers.hasItem
@@ -132,5 +133,57 @@ class EveningApiTest(@Autowired private val mvc: MockMvc, @Autowired private val
         )
 
         listEvenings(kees).andExpect { jsonPath("$[*].id") { value(not(hasItem(ended.toString()))) } }
+    }
+
+    @Test
+    fun `a teacher removes a slot, but not one with a booking`() {
+        val response = createEvening(msJansen).andReturn().response.contentAsString
+        val evening = JsonPath.read<String>(response, "$.id")
+        val (first, second) = JsonPath.read<List<String>>(response, "$.slots[*].id")
+        mvc.post("/evenings/$evening/bookings") {
+            header("X-User-Id", anna)
+            contentType = MediaType.APPLICATION_JSON
+            content = """{"childId": "00000000-0000-0000-0000-000000000301", "slotId": "$first"}"""
+        }
+
+        mvc.delete("/evenings/$evening/slots/$second") { header("X-User-Id", msJansen) }.andExpect {
+            status { isNoContent() }
+        }
+        mvc.delete("/evenings/$evening/slots/$first") { header("X-User-Id", msJansen) }.andExpect {
+            status { isConflict() }
+            jsonPath("$.code") { value("SLOT_HAS_BOOKINGS") }
+        }
+    }
+
+    @Test
+    fun `a teacher sees per slot which child comes with which parent, empty slots too`() {
+        val response = createEvening(msJansen, start = "19:00", end = "19:30").andReturn().response.contentAsString
+        val evening = JsonPath.read<String>(response, "$.id")
+        mvc.post("/evenings/$evening/bookings") {
+            header("X-User-Id", anna)
+            contentType = MediaType.APPLICATION_JSON
+            content = """{"childId": "00000000-0000-0000-0000-000000000301", "slotId": "${JsonPath.read<String>(response, "$.slots[1].id")}"}"""
+        }
+
+        mvc.get("/evenings/$evening/overview") { header("X-User-Id", msJansen) }.andExpect {
+            status { isOk() }
+            jsonPath("$.length()") { value(2) }
+            jsonPath("$[0].start") { value("19:00:00") }
+            jsonPath("$[0].conversations.length()") { value(0) }
+            jsonPath("$[1].start") { value("19:15:00") }
+            jsonPath("$[1].conversations[0].childName") { value("Emma Bakker") }
+            jsonPath("$[1].conversations[0].parentName") { value("Anna Bakker") }
+        }
+    }
+
+    @Test
+    fun `only the teacher of the evening sees its overview`() {
+        val evening = createdId(msJansen)
+
+        mvc.get("/evenings/$evening/overview") { header("X-User-Id", mrDeVries) }.andExpect { status { isForbidden() } }
+        mvc.get("/evenings/$evening/overview") { header("X-User-Id", anna) }.andExpect { status { isForbidden() } }
+        mvc.get("/evenings/${UUID.randomUUID()}/overview") { header("X-User-Id", msJansen) }.andExpect {
+            status { isNotFound() }
+        }
     }
 }

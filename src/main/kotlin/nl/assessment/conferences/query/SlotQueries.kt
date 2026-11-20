@@ -1,6 +1,9 @@
 package nl.assessment.conferences.query
 
 import nl.assessment.conferences.domain.EveningId
+import nl.assessment.conferences.domain.EveningNotFound
+import nl.assessment.conferences.domain.ParentId
+import nl.assessment.conferences.domain.User
 import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.stereotype.Service
 import java.time.LocalTime
@@ -9,10 +12,18 @@ import java.util.UUID
 data class FreeSlot(val id: UUID, val start: LocalTime, val end: LocalTime, val capacity: Int, val freePlaces: Int)
 
 @Service
-class SlotQueries(private val jdbc: JdbcTemplate) {
+class SlotQueries(private val jdbc: JdbcTemplate, private val evenings: EveningQueries) {
 
-    /** Slots with free places. Counts only, no names. */
-    fun freeSlots(eveningId: EveningId): List<FreeSlot> = jdbc.query(
+    /**
+     * Slots with free places. Counts only, no names.
+     * A parent only gets slots of an evening that is in their own list: upcoming, at their children's teachers.
+     */
+    fun freeSlots(parentId: ParentId, eveningId: EveningId): List<FreeSlot> {
+        if (evenings.evenings(User.Parent(parentId)).none { it.id == eveningId.value }) throw EveningNotFound()
+        return freeSlotRows(eveningId)
+    }
+
+    private fun freeSlotRows(eveningId: EveningId): List<FreeSlot> = jdbc.query(
         "SELECT * FROM slot_availability WHERE evening_id = ? AND free_places > 0 ORDER BY start_time",
         { rs, _ ->
             FreeSlot(

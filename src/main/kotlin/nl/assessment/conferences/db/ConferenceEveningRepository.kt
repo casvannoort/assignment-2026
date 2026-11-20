@@ -41,11 +41,9 @@ class ConferenceEveningRepository(private val jdbc: JdbcTemplate) {
                 slot.id.value, evening.id.value, slot.time.start, slot.time.end, slot.capacity,
             )
         }
-        // Delete first: a child can cancel and book again, and the unique (evening_id, child_id) must not trip.
-        jdbc.update(
-            "DELETE FROM booking WHERE evening_id = ? AND id <> ALL (?::uuid[])",
-            evening.id.value, evening.bookings.joinToString(",", "{", "}") { it.id.value.toString() },
-        )
+        // Delete before inserting: a child can cancel and book again, and the unique (evening_id, child_id) must not trip.
+        deleteRowsNoLongerIn("booking", evening.id, evening.bookings.map { it.id.value })
+        deleteRowsNoLongerIn("slot", evening.id, evening.slots.map { it.id.value })
         evening.bookings.forEach { booking ->
             jdbc.update(
                 """
@@ -56,6 +54,13 @@ class ConferenceEveningRepository(private val jdbc: JdbcTemplate) {
                 booking.id.value, evening.id.value, booking.slotId.value, booking.childId.value, booking.bookedBy.value,
             )
         }
+    }
+
+    private fun deleteRowsNoLongerIn(table: String, eveningId: EveningId, keep: List<UUID>) {
+        jdbc.update(
+            "DELETE FROM $table WHERE evening_id = ? AND id <> ALL (?::uuid[])",
+            eveningId.value, keep.joinToString(",", "{", "}"),
+        )
     }
 
     /** Locks the teacher until the transaction ends, so their evenings can be checked and changed safely. */

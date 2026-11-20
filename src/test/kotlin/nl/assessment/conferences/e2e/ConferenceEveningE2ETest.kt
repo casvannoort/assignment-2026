@@ -104,4 +104,32 @@ class ConferenceEveningE2ETest(@LocalServerPort port: Int) {
             .retrieve().body<List<Map<String, Any>>>()!!
         assertTrue(bookingsAfter.none { it["id"] == booking["id"] })
     }
+
+    @Test
+    fun `a teacher removes a slot for a break and sees who comes when`() {
+        val evening = http.post().uri("/evenings")
+            .header("X-User-Id", msJansen)
+            .contentType(MediaType.APPLICATION_JSON)
+            .body("""{"date": "${TestDates.unique()}", "start": "19:00", "end": "20:00", "conversationMinutes": 15}""")
+            .retrieve().body<Map<String, Any>>()!!
+        val slots = (evening["slots"] as List<*>).map { (it as Map<*, *>)["id"] }
+
+        http.delete().uri("/evenings/${evening["id"]}/slots/${slots[2]}")
+            .header("X-User-Id", msJansen)
+            .retrieve().toBodilessEntity()
+        http.post().uri("/evenings/${evening["id"]}/bookings")
+            .header("X-User-Id", anna)
+            .contentType(MediaType.APPLICATION_JSON)
+            .body("""{"childId": "$emma", "slotId": "${slots[3]}"}""")
+            .retrieve().toBodilessEntity()
+
+        val overview = http.get().uri("/evenings/${evening["id"]}/overview")
+            .header("X-User-Id", msJansen)
+            .retrieve().body<List<Map<String, Any>>>()!!
+
+        assertEquals(listOf("19:00:00", "19:15:00", "19:45:00"), overview.map { it["start"] })
+        val conversation = (overview[2]["conversations"] as List<*>).single() as Map<*, *>
+        assertEquals("Emma Bakker", conversation["childName"])
+        assertEquals("Anna Bakker", conversation["parentName"])
+    }
 }

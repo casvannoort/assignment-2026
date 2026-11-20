@@ -10,6 +10,7 @@ import nl.assessment.conferences.domain.Forbidden
 import nl.assessment.conferences.domain.EveningOverlaps
 import nl.assessment.conferences.domain.InvalidEvening
 import nl.assessment.conferences.domain.SlotFull
+import nl.assessment.conferences.domain.SlotHasBookings
 import nl.assessment.conferences.domain.SlotNotFound
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
@@ -30,6 +31,7 @@ class ErrorHandler {
         val status = when (e) {
             is InvalidEvening -> HttpStatus.BAD_REQUEST
             is EveningOverlaps, is SlotFull, is ChildAlreadyBooked, is ChildDoubleBooked, is EveningHasEnded,
+            is SlotHasBookings,
             -> HttpStatus.CONFLICT
             is SlotNotFound, is EveningNotFound, is BookingNotFound -> HttpStatus.NOT_FOUND
             is Forbidden -> HttpStatus.FORBIDDEN

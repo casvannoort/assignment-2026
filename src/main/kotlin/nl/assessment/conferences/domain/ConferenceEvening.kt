@@ -15,9 +15,12 @@ class ConferenceEvening(
     val date: LocalDate,
     val time: TimeRange,
     val conversationLength: Duration,
-    val slots: List<Slot>,
+    slots: List<Slot>,
     bookings: List<Booking> = emptyList(),
 ) {
+    private val _slots = slots.toMutableList()
+    val slots: List<Slot> get() = _slots.toList()
+
     private val _bookings = bookings.toMutableList()
     val bookings: List<Booking> get() = _bookings.toList()
 
@@ -45,10 +48,17 @@ class ConferenceEvening(
         _bookings.remove(booking(bookingId))
     }
 
+    fun removeSlot(slotId: SlotId, now: LocalDateTime) {
+        if (hasEnded(now)) throw EveningHasEnded()
+        val slot = _slots.find { it.id == slotId } ?: throw SlotNotFound()
+        if (_bookings.any { it.slotId == slotId }) throw SlotHasBookings()
+        _slots.remove(slot)
+    }
+
     fun booking(id: BookingId) = _bookings.find { it.id == id } ?: throw BookingNotFound()
 
     private fun ensureRoomIn(slotId: SlotId) {
-        val slot = slots.find { it.id == slotId } ?: throw SlotNotFound()
+        val slot = _slots.find { it.id == slotId } ?: throw SlotNotFound()
         if (_bookings.count { it.slotId == slotId } >= slot.capacity) throw SlotFull()
     }
 
