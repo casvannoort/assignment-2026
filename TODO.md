@@ -29,7 +29,7 @@ Tick a todo in the same commit that does the work. See the workflow in `PLAN.md`
 - [x] Domain: one booking per child per evening (`ChildAlreadyBooked`)
 - [x] Domain: no booking after the evening's end time
 - [x] Repository: lock on load (`FOR UPDATE`), upsert bookings
-- [ ] Command: book, in one transaction; a parent can only book for their own child, and only at that child's teacher (`403`)
+- [x] Command: book, in one transaction; a parent can only book for their own child, and only at that child's teacher (`403`)
 - [ ] Command: lock the child and reject an overlapping booking at another evening (`409 CHILD_DOUBLE_BOOKED`)
 - [ ] Integration (through the command): two concurrent bookings on the last place give one success and one `SLOT_FULL`
 - [ ] Integration (through the command): the same child booked at two teachers at the same time gives one success and one `CHILD_DOUBLE_BOOKED`

@@ -2,6 +2,7 @@ package nl.assessment.conferences.web
 
 import nl.assessment.conferences.command.EveningCommands
 import nl.assessment.conferences.domain.ConferenceEvening
+import nl.assessment.conferences.domain.Forbidden
 import nl.assessment.conferences.domain.User
 import nl.assessment.conferences.query.EveningQueries
 import org.springframework.http.HttpStatus

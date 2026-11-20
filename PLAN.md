@@ -66,7 +66,7 @@ domain/       pure Kotlin: aggregate, rules, errors               → unit tests
 command/      transactional: lock → check → call domain → save    → integration + e2e
 query/        all read logic: views, lookups, response DTOs       → integration + e2e
 web/          controllers, error mapping, identity headers        → e2e
-db/           aggregate repository only (load, lock, save)        → integration
+db/           aggregate repository: load (locked), save, and the checks commands run under that lock → integration
 ```
 
 ## Rules

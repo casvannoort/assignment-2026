@@ -3,6 +3,8 @@ package nl.assessment.conferences.web
 import nl.assessment.conferences.domain.ChildAlreadyBooked
 import nl.assessment.conferences.domain.DomainException
 import nl.assessment.conferences.domain.EveningHasEnded
+import nl.assessment.conferences.domain.EveningNotFound
+import nl.assessment.conferences.domain.Forbidden
 import nl.assessment.conferences.domain.EveningOverlaps
 import nl.assessment.conferences.domain.InvalidEvening
 import nl.assessment.conferences.domain.SlotFull
@@ -14,7 +16,6 @@ import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.bind.annotation.RestControllerAdvice
 
 class Unauthenticated : RuntimeException("unknown or missing X-User-Id")
-class Forbidden(message: String) : RuntimeException(message)
 
 data class ErrorResponse(val code: String, val message: String)
 
@@ -26,7 +27,8 @@ class ErrorHandler {
         val status = when (e) {
             is InvalidEvening -> HttpStatus.BAD_REQUEST
             is EveningOverlaps, is SlotFull, is ChildAlreadyBooked, is EveningHasEnded -> HttpStatus.CONFLICT
-            is SlotNotFound -> HttpStatus.NOT_FOUND
+            is SlotNotFound, is EveningNotFound -> HttpStatus.NOT_FOUND
+            is Forbidden -> HttpStatus.FORBIDDEN
         }
         return ResponseEntity.status(status).body(ErrorResponse(e.code, e.message!!))
     }
@@ -34,10 +36,6 @@ class ErrorHandler {
     @ExceptionHandler
     fun unauthenticated(e: Unauthenticated) =
         ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(ErrorResponse("UNAUTHENTICATED", e.message!!))
-
-    @ExceptionHandler
-    fun forbidden(e: Forbidden) =
-        ResponseEntity.status(HttpStatus.FORBIDDEN).body(ErrorResponse("FORBIDDEN", e.message!!))
 
     @ExceptionHandler
     fun unreadable(e: HttpMessageNotReadableException) =
