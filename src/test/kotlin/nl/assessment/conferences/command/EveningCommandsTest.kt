@@ -4,6 +4,7 @@ import nl.assessment.conferences.TestDates
 import nl.assessment.conferences.TestcontainersConfiguration
 import nl.assessment.conferences.db.ConferenceEveningRepository
 import nl.assessment.conferences.domain.EveningOverlaps
+import nl.assessment.conferences.domain.Forbidden
 import nl.assessment.conferences.domain.TeacherId
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -64,5 +65,22 @@ class EveningCommandsTest(
 
         assertEquals(1, results.count { it.isSuccess })
         assertEquals(1, results.count { it.exceptionOrNull() is EveningOverlaps })
+    }
+
+    @Test
+    fun `a teacher removes a slot of their own evening`() {
+        val evening = create(msJansen, "19:00", "20:00")
+        val brk = evening.slots[2].id
+
+        commands.removeSlot(msJansen, evening.id, brk)
+
+        assertEquals(evening.slots.filter { it.id != brk }, assertNotNull(repository.findById(evening.id)).slots)
+    }
+
+    @Test
+    fun `a teacher cannot remove a slot of another teacher's evening`() {
+        val evening = create(msJansen, "19:00", "20:00")
+
+        assertFailsWith<Forbidden> { commands.removeSlot(mrDeVries, evening.id, evening.slots[0].id) }
     }
 }

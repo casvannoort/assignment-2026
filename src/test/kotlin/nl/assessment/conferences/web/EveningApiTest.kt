@@ -11,6 +11,7 @@ import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.http.MediaType
 import com.jayway.jsonpath.JsonPath
 import org.springframework.test.web.servlet.MockMvc
+import org.springframework.test.web.servlet.delete
 import org.springframework.test.web.servlet.get
 import org.springframework.test.web.servlet.post
 import org.hamcrest.Matchers.hasItem
@@ -132,5 +133,29 @@ class EveningApiTest(@Autowired private val mvc: MockMvc, @Autowired private val
         )
 
         listEvenings(kees).andExpect { jsonPath("$[*].id") { value(not(hasItem(ended.toString()))) } }
+    }
+
+    private fun slotIds(evening: String) = JsonPath.read<List<String>>(
+        mvc.get("/evenings/$evening/slots") { header("X-User-Id", anna) }.andReturn().response.contentAsString, "$[*].id",
+    )
+
+    @Test
+    fun `a teacher removes a slot, but not one with a booking`() {
+        val response = createEvening(msJansen).andReturn().response.contentAsString
+        val evening = JsonPath.read<String>(response, "$.id")
+        val (first, second) = JsonPath.read<List<String>>(response, "$.slots[*].id")
+        mvc.post("/evenings/$evening/bookings") {
+            header("X-User-Id", anna)
+            contentType = MediaType.APPLICATION_JSON
+            content = """{"childId": "00000000-0000-0000-0000-000000000301", "slotId": "$first"}"""
+        }
+
+        mvc.delete("/evenings/$evening/slots/$second") { header("X-User-Id", msJansen) }.andExpect {
+            status { isNoContent() }
+        }
+        mvc.delete("/evenings/$evening/slots/$first") { header("X-User-Id", msJansen) }.andExpect {
+            status { isConflict() }
+            jsonPath("$.code") { value("SLOT_HAS_BOOKINGS") }
+        }
     }
 }
