@@ -79,6 +79,20 @@ class EveningApiTest(@Autowired private val mvc: MockMvc, @Autowired private val
         }
     }
 
+    @Test
+    fun `a malformed body gives 400 with a code`() {
+        listOf("""{"date": "not a date"}""", """{"start": "19:00"}""", "not json").forEach { body ->
+            mvc.post("/evenings") {
+                header("X-User-Id", msJansen)
+                contentType = MediaType.APPLICATION_JSON
+                content = body
+            }.andExpect {
+                status { isBadRequest() }
+                jsonPath("$.code") { value("INVALID_REQUEST") }
+            }
+        }
+    }
+
     private fun createdId(user: String) =
         JsonPath.read<String>(createEvening(user).andReturn().response.contentAsString, "$.id")
 
