@@ -123,4 +123,39 @@ class BookingCommandsTest(
             assertEquals(1, results.count { it.exceptionOrNull() is ChildDoubleBooked })
         }
     }
+
+    @Test
+    fun `the other parent moves and then cancels the booking`() {
+        val evening = eveningOf(msJansen)
+        val booking = bookings.book(anna, evening.id, emma, evening.slots[0].id)
+
+        bookings.move(mark, evening.id, booking.id, evening.slots[2].id)
+        assertEquals(
+            listOf(booking.copy(slotId = evening.slots[2].id, bookedBy = mark)),
+            assertNotNull(repository.findById(evening.id)).bookings,
+        )
+
+        bookings.cancel(mark, evening.id, booking.id)
+        assertEquals(emptyList(), assertNotNull(repository.findById(evening.id)).bookings)
+    }
+
+    @Test
+    fun `only a parent of the child moves or cancels the booking`() {
+        val evening = eveningOf(msJansen)
+        val booking = bookings.book(anna, evening.id, emma, evening.slots[0].id)
+
+        assertFailsWith<Forbidden> { bookings.move(kees, evening.id, booking.id, evening.slots[1].id) }
+        assertFailsWith<Forbidden> { bookings.cancel(kees, evening.id, booking.id) }
+    }
+
+    @Test
+    fun `a child cannot be moved onto a time they are booked elsewhere`() {
+        val date = TestDates.unique()
+        val atJansen = eveningOf(msJansen, date)
+        val atDeVries = eveningOf(mrDeVries, date)
+        bookings.book(anna, atJansen.id, emma, atJansen.slots[1].id) // 19:15-19:30
+        val booking = bookings.book(anna, atDeVries.id, emma, atDeVries.slots[0].id) // 19:00-19:15
+
+        assertFailsWith<ChildDoubleBooked> { bookings.move(anna, atDeVries.id, booking.id, atDeVries.slots[1].id) }
+    }
 }
