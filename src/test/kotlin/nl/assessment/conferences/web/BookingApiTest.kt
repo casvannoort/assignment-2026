@@ -7,6 +7,9 @@ import nl.assessment.conferences.command.EveningCommands
 import nl.assessment.conferences.domain.ChildId
 import nl.assessment.conferences.domain.ParentId
 import nl.assessment.conferences.domain.TeacherId
+import org.hamcrest.Matchers.contains
+import org.hamcrest.Matchers.hasItem
+import org.hamcrest.Matchers.not
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
@@ -32,6 +35,7 @@ class BookingApiTest(
     private fun id(n: Int) = UUID.fromString("00000000-0000-0000-0000-000000000$n")
     private val msJansen = id(101)
     private val anna = id(201)
+    private val mark = id(202)
     private val sara = id(203)
     private val emma = id(301)
     private val daan = id(302)
@@ -116,6 +120,25 @@ class BookingApiTest(
         book(anna, "not-an-id", emma, UUID.randomUUID()).andExpect {
             status { isBadRequest() }
             jsonPath("$.code") { value("INVALID_REQUEST") }
+        }
+    }
+
+    @Test
+    fun `every parent of the child sees the booking`() {
+        val evening = eveningAtJansen()
+        val booking = bookings.book(ParentId(anna), evening.id, ChildId(emma), evening.slots[1].id).id.value
+        val mine = "$[?(@.id == '$booking')]"
+
+        mvc.get("/bookings") { header("X-User-Id", mark) }.andExpect {
+            status { isOk() }
+            jsonPath("$mine.childName") { value(contains("Emma Bakker")) }
+            jsonPath("$mine.teacherName") { value(contains("Ms. Jansen")) }
+            jsonPath("$mine.date") { value(contains(evening.date.toString())) }
+            jsonPath("$mine.start") { value(contains("19:15:00")) }
+            jsonPath("$mine.bookedByName") { value(contains("Anna Bakker")) }
+        }
+        mvc.get("/bookings") { header("X-User-Id", sara) }.andExpect {
+            jsonPath("$[*].id") { value(not(hasItem(booking.toString()))) }
         }
     }
 }
