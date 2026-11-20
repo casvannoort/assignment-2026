@@ -6,19 +6,27 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc
 import org.springframework.context.annotation.Import
+import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.http.MediaType
+import com.jayway.jsonpath.JsonPath
 import org.springframework.test.web.servlet.MockMvc
+import org.springframework.test.web.servlet.get
 import org.springframework.test.web.servlet.post
+import org.hamcrest.Matchers.hasItem
+import org.hamcrest.Matchers.not
 import java.time.LocalDate
+import java.util.UUID
 import kotlin.random.Random
 
 @SpringBootTest
 @AutoConfigureMockMvc
 @Import(TestcontainersConfiguration::class)
-class EveningApiTest(@Autowired private val mvc: MockMvc) {
+class EveningApiTest(@Autowired private val mvc: MockMvc, @Autowired private val jdbc: JdbcTemplate) {
 
     private val msJansen = "00000000-0000-0000-0000-000000000101"
+    private val mrDeVries = "00000000-0000-0000-0000-000000000102"
     private val anna = "00000000-0000-0000-0000-000000000201"
+    private val kees = "00000000-0000-0000-0000-000000000204" // only Lisa's parent, Lisa only has Mr. de Vries
 
     private val date = LocalDate.parse("2030-01-01").plusDays(Random.nextLong(10_000))
 
@@ -70,5 +78,46 @@ class EveningApiTest(@Autowired private val mvc: MockMvc) {
             status { isConflict() }
             jsonPath("$.code") { value("EVENING_OVERLAPS") }
         }
+    }
+
+    private fun createdId(user: String) =
+        JsonPath.read<String>(createEvening(user).andReturn().response.contentAsString, "$.id")
+
+    private fun listEvenings(user: String) = mvc.get("/evenings") { header("X-User-Id", user) }
+
+    @Test
+    fun `a teacher sees their own evenings, not those of another teacher`() {
+        val own = createdId(msJansen)
+        val other = createdId(mrDeVries)
+
+        listEvenings(msJansen).andExpect {
+            status { isOk() }
+            jsonPath("$[*].id") { value(hasItem(own)) }
+            jsonPath("$[*].id") { value(not(hasItem(other))) }
+        }
+    }
+
+    @Test
+    fun `a parent sees only evenings of their children's teachers`() {
+        val ofLisasTeacher = createdId(mrDeVries)
+        val ofAnotherTeacher = createdId(msJansen)
+
+        listEvenings(kees).andExpect {
+            status { isOk() }
+            jsonPath("$[*].id") { value(hasItem(ofLisasTeacher)) }
+            jsonPath("$[*].id") { value(not(hasItem(ofAnotherTeacher))) }
+            jsonPath("$[0].teacherName") { exists() }
+        }
+    }
+
+    @Test
+    fun `a parent does not see evenings that have ended`() {
+        val ended = UUID.randomUUID()
+        jdbc.update(
+            "INSERT INTO evening VALUES (?, ?::uuid, DATE '2020-01-01', TIME '19:00', TIME '20:00', 15)",
+            ended, mrDeVries,
+        )
+
+        listEvenings(kees).andExpect { jsonPath("$[*].id") { value(not(hasItem(ended.toString()))) } }
     }
 }
