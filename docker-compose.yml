@@ -6,7 +6,7 @@ services:
       POSTGRES_USER: conferences
       POSTGRES_PASSWORD: conferences
     ports:
-      - "5432:5432"
+      - "54329:5432"
     healthcheck:
       test: ["CMD", "pg_isready", "-U", "conferences"]
       interval: 2s
