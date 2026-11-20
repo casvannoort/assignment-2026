@@ -1,5 +1,6 @@
 package nl.assessment.conferences.web
 
+import nl.assessment.conferences.domain.BookingNotFound
 import nl.assessment.conferences.domain.ChildAlreadyBooked
 import nl.assessment.conferences.domain.ChildDoubleBooked
 import nl.assessment.conferences.domain.DomainException
@@ -30,7 +31,7 @@ class ErrorHandler {
             is InvalidEvening -> HttpStatus.BAD_REQUEST
             is EveningOverlaps, is SlotFull, is ChildAlreadyBooked, is ChildDoubleBooked, is EveningHasEnded,
             -> HttpStatus.CONFLICT
-            is SlotNotFound, is EveningNotFound -> HttpStatus.NOT_FOUND
+            is SlotNotFound, is EveningNotFound, is BookingNotFound -> HttpStatus.NOT_FOUND
             is Forbidden -> HttpStatus.FORBIDDEN
         }
         return ResponseEntity.status(status).body(ErrorResponse(e.code, e.message!!))

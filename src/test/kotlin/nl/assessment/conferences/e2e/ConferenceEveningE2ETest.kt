@@ -11,6 +11,7 @@ import org.springframework.web.client.RestClient
 import org.springframework.web.client.body
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 
 /** Runs the real server on a random port and talks to it over HTTP, like a client would. */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
@@ -66,5 +67,41 @@ class ConferenceEveningE2ETest(@LocalServerPort port: Int) {
 
         assertEquals("19:30:00", marksView["start"])
         assertEquals("Anna Bakker", marksView["bookedByName"])
+    }
+
+    @Test
+    fun `the other parent moves the booking and then cancels it`() {
+        val evening = http.post().uri("/evenings")
+            .header("X-User-Id", msJansen)
+            .contentType(MediaType.APPLICATION_JSON)
+            .body("""{"date": "${TestDates.unique()}", "start": "19:00", "end": "20:00", "conversationMinutes": 15}""")
+            .retrieve().body<Map<String, Any>>()!!
+        val slots = evening["slots"] as List<*>
+        fun slotId(i: Int) = (slots[i] as Map<*, *>)["id"]
+
+        val booking = http.post().uri("/evenings/${evening["id"]}/bookings")
+            .header("X-User-Id", anna)
+            .contentType(MediaType.APPLICATION_JSON)
+            .body("""{"childId": "$emma", "slotId": "${slotId(0)}"}""")
+            .retrieve().body<Map<String, Any>>()!!
+        val bookingUrl = "/evenings/${evening["id"]}/bookings/${booking["id"]}"
+
+        http.put().uri(bookingUrl)
+            .header("X-User-Id", mark)
+            .contentType(MediaType.APPLICATION_JSON)
+            .body("""{"slotId": "${slotId(3)}"}""")
+            .retrieve().toBodilessEntity()
+
+        val annasView = http.get().uri("/bookings").header("X-User-Id", anna)
+            .retrieve().body<List<Map<String, Any>>>()!!
+            .single { it["id"] == booking["id"] }
+        assertEquals("19:45:00", annasView["start"])
+        assertEquals("Mark Bakker", annasView["bookedByName"])
+
+        http.delete().uri(bookingUrl).header("X-User-Id", mark).retrieve().toBodilessEntity()
+
+        val bookingsAfter = http.get().uri("/bookings").header("X-User-Id", anna)
+            .retrieve().body<List<Map<String, Any>>>()!!
+        assertTrue(bookingsAfter.none { it["id"] == booking["id"] })
     }
 }

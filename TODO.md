@@ -40,14 +40,14 @@ Tick a todo in the same commit that does the work. See the workflow in `PLAN.md`
 
 ## Phase 3: Parent moves or cancels a booking
 
-- [ ] Domain: move to another slot; a full slot gives `SlotFull` and the original booking stays unchanged
-- [ ] Domain: moving to the same slot is a no-op
-- [ ] Domain: moving sets `bookedBy` to the parent who moved it
-- [ ] Domain: cancel a booking
-- [ ] Repository: deletes bookings that are no longer in the aggregate (integration)
-- [ ] Command: move checks for an overlapping booking at another evening, like booking does
-- [ ] `PUT` and `DELETE /evenings/{id}/bookings/{bookingId}`: any parent of the child (`403` otherwise, `404` for another evening)
-- [ ] E2E: the second parent moves the booking, then cancels it
+- [x] Domain: move to another slot; a full slot gives `SlotFull` and the original booking stays unchanged
+- [x] Domain: moving to the same slot is a no-op
+- [x] Domain: moving sets `bookedBy` to the parent who moved it
+- [x] Domain: cancel a booking
+- [x] Repository: deletes bookings that are no longer in the aggregate (integration)
+- [x] Command: move checks for an overlapping booking at another evening, like booking does
+- [x] `PUT` and `DELETE /evenings/{id}/bookings/{bookingId}`: any parent of the child (`403` otherwise, `404` for another evening)
+- [x] E2E: the second parent moves the booking, then cancels it
 
 ## Phase 4: Teacher sees the overview and removes a slot
 

@@ -41,6 +41,11 @@ class ConferenceEveningRepository(private val jdbc: JdbcTemplate) {
                 slot.id.value, evening.id.value, slot.time.start, slot.time.end, slot.capacity,
             )
         }
+        // Delete first: a child can cancel and book again, and the unique (evening_id, child_id) must not trip.
+        jdbc.update(
+            "DELETE FROM booking WHERE evening_id = ? AND id <> ALL (?::uuid[])",
+            evening.id.value, evening.bookings.joinToString(",", "{", "}") { it.id.value.toString() },
+        )
         evening.bookings.forEach { booking ->
             jdbc.update(
                 """

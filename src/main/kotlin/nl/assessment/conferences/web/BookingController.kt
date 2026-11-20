@@ -1,6 +1,7 @@
 package nl.assessment.conferences.web
 
 import nl.assessment.conferences.command.BookingCommands
+import nl.assessment.conferences.domain.BookingId
 import nl.assessment.conferences.domain.ChildId
 import nl.assessment.conferences.domain.EveningId
 import nl.assessment.conferences.domain.Forbidden
@@ -9,15 +10,19 @@ import nl.assessment.conferences.domain.User
 import nl.assessment.conferences.query.BookingQueries
 import nl.assessment.conferences.query.ChildBooking
 import org.springframework.http.HttpStatus
+import org.springframework.web.bind.annotation.DeleteMapping
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
+import org.springframework.web.bind.annotation.PutMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.ResponseStatus
 import org.springframework.web.bind.annotation.RestController
 import java.util.UUID
 
 data class BookRequest(val childId: UUID, val slotId: UUID)
+
+data class MoveRequest(val slotId: UUID)
 
 data class BookingResponse(val id: UUID, val eveningId: UUID, val slotId: UUID, val childId: UUID)
 
@@ -36,5 +41,24 @@ class BookingController(private val commands: BookingCommands, private val queri
         val parent = user as? User.Parent ?: throw Forbidden("only parents can book")
         val booking = commands.book(parent.id, EveningId(eveningId), ChildId(request.childId), SlotId(request.slotId))
         return BookingResponse(booking.id.value, eveningId, booking.slotId.value, booking.childId.value)
+    }
+
+    @PutMapping("/evenings/{eveningId}/bookings/{bookingId}")
+    fun move(
+        user: User,
+        @PathVariable eveningId: UUID,
+        @PathVariable bookingId: UUID,
+        @RequestBody request: MoveRequest,
+    ): BookingResponse {
+        val parent = user as? User.Parent ?: throw Forbidden("only parents can move bookings")
+        val booking = commands.move(parent.id, EveningId(eveningId), BookingId(bookingId), SlotId(request.slotId))
+        return BookingResponse(booking.id.value, eveningId, booking.slotId.value, booking.childId.value)
+    }
+
+    @DeleteMapping("/evenings/{eveningId}/bookings/{bookingId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    fun cancel(user: User, @PathVariable eveningId: UUID, @PathVariable bookingId: UUID) {
+        val parent = user as? User.Parent ?: throw Forbidden("only parents can cancel bookings")
+        commands.cancel(parent.id, EveningId(eveningId), BookingId(bookingId))
     }
 }

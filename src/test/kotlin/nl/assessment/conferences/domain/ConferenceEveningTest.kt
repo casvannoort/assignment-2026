@@ -132,4 +132,72 @@ class ConferenceEveningTest {
 
         evening.book(emma, anna, evening.slots[3].id, duringTheEvening)
     }
+
+    @Test
+    fun `a booking moves to another slot`() {
+        val evening = evening("19:00", "20:00", 15)
+        val booking = evening.book(emma, anna, evening.slots[0].id, now)
+
+        val moved = evening.move(booking.id, evening.slots[2].id, anna, now)
+
+        assertEquals(booking.copy(slotId = evening.slots[2].id), moved)
+        assertEquals(listOf(moved), evening.bookings)
+    }
+
+    @Test
+    fun `moving to a full slot fails and keeps the original booking`() {
+        val evening = evening("19:00", "20:00", 15)
+        val emmasBooking = evening.book(emma, anna, evening.slots[0].id, now)
+        evening.book(daan, anna, evening.slots[1].id, now)
+
+        assertFailsWith<SlotFull> { evening.move(emmasBooking.id, evening.slots[1].id, anna, now) }
+        assertEquals(evening.slots[0].id, evening.bookings.single { it.childId == emma }.slotId)
+    }
+
+    @Test
+    fun `moving an unknown booking fails`() {
+        val evening = evening("19:00", "20:00", 15)
+
+        assertFailsWith<BookingNotFound> { evening.move(BookingId.new(), evening.slots[0].id, anna, now) }
+    }
+
+    @Test
+    fun `moving to the slot it is already in changes nothing`() {
+        val evening = evening("19:00", "20:00", 15)
+        val booking = evening.book(emma, anna, evening.slots[0].id, now)
+
+        assertEquals(booking, evening.move(booking.id, evening.slots[0].id, anna, now))
+        assertEquals(listOf(booking), evening.bookings)
+    }
+
+    @Test
+    fun `moving records the parent who moved it`() {
+        val evening = evening("19:00", "20:00", 15)
+        val mark = ParentId(UUID.randomUUID())
+        val booking = evening.book(emma, anna, evening.slots[0].id, now)
+
+        assertEquals(mark, evening.move(booking.id, evening.slots[1].id, mark, now).bookedBy)
+    }
+
+    @Test
+    fun `a cancelled booking frees its place`() {
+        val evening = evening("19:00", "20:00", 15)
+        val slot = evening.slots[0].id
+        val booking = evening.book(emma, anna, slot, now)
+
+        evening.cancel(booking.id, now)
+
+        assertTrue(evening.bookings.isEmpty())
+        evening.book(daan, anna, slot, now)
+    }
+
+    @Test
+    fun `no moving or cancelling once the evening has ended`() {
+        val evening = evening("19:00", "20:00", 15)
+        val booking = evening.book(emma, anna, evening.slots[0].id, now)
+        val afterwards = LocalDateTime.of(date, LocalTime.parse("21:00"))
+
+        assertFailsWith<EveningHasEnded> { evening.move(booking.id, evening.slots[1].id, anna, afterwards) }
+        assertFailsWith<EveningHasEnded> { evening.cancel(booking.id, afterwards) }
+    }
 }
