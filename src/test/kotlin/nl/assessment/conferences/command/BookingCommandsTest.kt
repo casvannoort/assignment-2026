@@ -9,6 +9,7 @@ import nl.assessment.conferences.domain.EveningId
 import nl.assessment.conferences.domain.EveningNotFound
 import nl.assessment.conferences.domain.Forbidden
 import nl.assessment.conferences.domain.ParentId
+import nl.assessment.conferences.domain.SlotFull
 import nl.assessment.conferences.domain.SlotId
 import nl.assessment.conferences.domain.TeacherId
 import org.junit.jupiter.api.Test
@@ -19,6 +20,8 @@ import java.time.Duration
 import java.time.LocalDate
 import java.time.LocalTime
 import java.util.UUID
+import java.util.concurrent.Callable
+import java.util.concurrent.Executors
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertNotNull
@@ -82,5 +85,42 @@ class BookingCommandsTest(
 
         assertFailsWith<ChildDoubleBooked> { bookings.book(mark, atDeVries.id, emma, atDeVries.slots[0].id) }
         bookings.book(mark, atDeVries.id, emma, atDeVries.slots[1].id) // 19:15-19:30 only touches, so it is fine
+    }
+
+    private fun <T> atTheSameTime(vararg attempts: () -> T): List<Result<T>> {
+        val pool = Executors.newFixedThreadPool(attempts.size)
+        return pool.invokeAll(attempts.map { Callable { runCatching(it) } }).map { it.get() }.also { pool.shutdown() }
+    }
+
+    @Test
+    fun `two parents booking the last place at the same time gives one booking`() {
+        val evening = eveningOf(msJansen)
+        val slot = evening.slots[0].id
+
+        val results = atTheSameTime(
+            { bookings.book(anna, evening.id, emma, slot) },
+            { bookings.book(sara, evening.id, daan, slot) },
+        )
+
+        assertEquals(1, results.count { it.isSuccess })
+        assertEquals(1, results.count { it.exceptionOrNull() is SlotFull })
+    }
+
+    @Test
+    fun `booking a child at two teachers at the same time gives one booking`() {
+        // The race window is small (between the overlap check and the commit), so try it a few times.
+        repeat(20) {
+            val date = TestDates.unique()
+            val atJansen = eveningOf(msJansen, date)
+            val atDeVries = eveningOf(mrDeVries, date)
+
+            val results = atTheSameTime(
+                { bookings.book(anna, atJansen.id, emma, atJansen.slots[0].id) },
+                { bookings.book(mark, atDeVries.id, emma, atDeVries.slots[0].id) },
+            )
+
+            assertEquals(1, results.count { it.isSuccess })
+            assertEquals(1, results.count { it.exceptionOrNull() is ChildDoubleBooked })
+        }
     }
 }
