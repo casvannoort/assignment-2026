@@ -9,6 +9,7 @@ import nl.assessment.conferences.domain.Forbidden
 import nl.assessment.conferences.domain.User
 import nl.assessment.conferences.query.EveningQueries
 import nl.assessment.conferences.query.FreeSlot
+import nl.assessment.conferences.query.OverviewSlot
 import nl.assessment.conferences.query.SlotQueries
 import org.springframework.http.HttpStatus
 import org.springframework.web.bind.annotation.DeleteMapping
@@ -76,6 +77,14 @@ class EveningController(
             Duration.ofMinutes(request.conversationMinutes), request.capacity,
         )
         return EveningResponse(evening)
+    }
+
+    @GetMapping("/{id}/overview")
+    fun overview(user: User, @PathVariable id: UUID): List<OverviewSlot> {
+        val teacher = user as? User.Teacher ?: throw Forbidden("only teachers see the overview")
+        val owner = queries.teacherOf(id) ?: throw EveningNotFound()
+        if (owner != teacher.id.value) throw Forbidden("not your evening")
+        return queries.overview(id)
     }
 
     @DeleteMapping("/{id}/slots/{slotId}")
