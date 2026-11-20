@@ -71,11 +71,15 @@ class AssignmentChecksTest {
     fun `5 every parent of the child sees the booking`() {
         val other = UUID.randomUUID()
         val parentsOf = mapOf(child to listOf(parent, other))
-        val sees = reply(200, """[{"id": "$b"}]""")
+        val sees = reply(200, """[{"id": "$b", "start": "19:00:00"}]""")
         val blind = reply(200, "[]")
+        val staleTime = reply(200, """[{"id": "$b", "start": "19:15:00"}]""")
 
         assertEquals(emptyList(), AssignmentChecks.everyParentSeesBooking(snapshot, parentsOf, mapOf(parent to sees, other to sees)))
         assertEquals(1, AssignmentChecks.everyParentSeesBooking(snapshot, parentsOf, mapOf(parent to sees, other to blind)).size)
+        assertEquals(1, AssignmentChecks.everyParentSeesBooking(snapshot, parentsOf, mapOf(parent to sees, other to staleTime)).size)
+        assertEquals(emptyList(), AssignmentChecks.cancelledIsGone(b, mapOf(parent to blind, other to blind)))
+        assertEquals(1, AssignmentChecks.cancelledIsGone(b, mapOf(parent to blind, other to sees)).size)
     }
 
     @Test
@@ -89,9 +93,19 @@ class AssignmentChecksTest {
             {"slotId": "$s1", "start": "19:00:00", "conversations": [{"bookingId": "$b", "childName": "Emma", "parentName": ""}]},
             {"slotId": "$s2", "start": "19:15:00", "conversations": []}]""")
 
-        assertEquals(emptyList(), AssignmentChecks.overviewShowsEverything(e, good, snapshot))
-        assertTrue(AssignmentChecks.overviewShowsEverything(e, missingSlot, snapshot).isNotEmpty())
-        assertTrue(AssignmentChecks.overviewShowsEverything(e, noParent, snapshot).isNotEmpty())
+        val wrongChild = reply(200, """[
+            {"slotId": "$s1", "start": "19:00:00", "conversations": [{"bookingId": "$b", "childName": "Daan", "parentName": "Anna"}]},
+            {"slotId": "$s2", "start": "19:15:00", "conversations": []}]""")
+        val extra = reply(200, """[
+            {"slotId": "$s1", "start": "19:00:00", "conversations": [{"bookingId": "$b", "childName": "Emma", "parentName": "Anna"}]},
+            {"slotId": "$s2", "start": "19:15:00", "conversations": [{"bookingId": "${UUID.randomUUID()}", "childName": "Emma", "parentName": "Anna"}]}]""")
+        val names = mapOf(child to "Emma", parent to "Anna")::getValue
+
+        assertEquals(emptyList(), AssignmentChecks.overviewShowsEverything(e, good, snapshot, names))
+        assertTrue(AssignmentChecks.overviewShowsEverything(e, missingSlot, snapshot, names).isNotEmpty())
+        assertTrue(AssignmentChecks.overviewShowsEverything(e, noParent, snapshot, names).isNotEmpty())
+        assertTrue(AssignmentChecks.overviewShowsEverything(e, wrongChild, snapshot, names).isNotEmpty())
+        assertTrue(AssignmentChecks.overviewShowsEverything(e, extra, snapshot, names).isNotEmpty())
     }
 
     @Test
@@ -100,5 +114,18 @@ class AssignmentChecksTest {
 
         assertEquals(emptyList(), AssignmentChecks.removedSlotIsGone(s2, overview, reply(200, "[]")))
         assertEquals(1, AssignmentChecks.removedSlotIsGone(s2, overview, reply(200, """[{"id": "$s2"}]""")).size)
+    }
+
+    @Test
+    fun `the evening list shows a teacher their own evenings and a parent the upcoming ones of their children's teachers`() {
+        val school = School(listOf(t), listOf(parent), listOf(child), mapOf(child to listOf(parent)), mapOf(child to listOf(t)))
+        val now = java.time.LocalDateTime.parse("2030-02-01T12:00")
+        val right = reply(200, """[{"id": "$e"}]""")
+        val empty = reply(200, "[]")
+
+        assertEquals(emptyList(), AssignmentChecks.eveningListIsRight(t, right, snapshot, now, school))
+        assertEquals(emptyList(), AssignmentChecks.eveningListIsRight(parent, right, snapshot, now, school))
+        assertEquals(1, AssignmentChecks.eveningListIsRight(parent, empty, snapshot, now, school).size)
+        assertEquals(1, AssignmentChecks.eveningListIsRight(parent, right, snapshot, now.plusDays(1), school).size)
     }
 }

@@ -72,4 +72,16 @@ class ConsistencyTest(@Autowired private val jdbc: JdbcTemplate, @LocalServerPor
 
         assertEquals(1, findings.size)
     }
+
+    @Test
+    fun `stored slots that differ from the reply are a finding`() {
+        val create = Action.CreateEvening(msJansen, LocalDate.parse("2030-02-02"), LocalTime.parse("19:00"), LocalTime.parse("19:30"), 15, null)
+        val before = Snapshot.take(jdbc)
+        val reply = api.send(create)
+        val after = Snapshot.take(jdbc)
+        val oneSlotLost = after.copy(slots = after.slots.drop(1).toSet())
+
+        assertEquals(emptyList(), Consistency.check(create, reply, before, after))
+        assertEquals(1, Consistency.check(create, reply, before, oneSlotLost).size)
+    }
 }
