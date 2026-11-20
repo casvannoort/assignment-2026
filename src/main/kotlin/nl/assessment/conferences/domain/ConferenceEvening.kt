@@ -7,6 +7,8 @@ import java.time.LocalTime
 
 data class Slot(val id: SlotId, val time: TimeRange, val capacity: Int)
 
+data class Booking(val id: BookingId, val slotId: SlotId, val childId: ChildId, val bookedBy: ParentId)
+
 class ConferenceEvening(
     val id: EveningId,
     val teacherId: TeacherId,
@@ -14,7 +16,17 @@ class ConferenceEvening(
     val time: TimeRange,
     val conversationLength: Duration,
     val slots: List<Slot>,
+    bookings: List<Booking> = emptyList(),
 ) {
+    private val _bookings = bookings.toMutableList()
+    val bookings: List<Booking> get() = _bookings.toList()
+
+    fun book(childId: ChildId, parentId: ParentId, slotId: SlotId, now: LocalDateTime): Booking {
+        val slot = slots.find { it.id == slotId } ?: throw SlotNotFound()
+        if (_bookings.count { it.slotId == slotId } >= slot.capacity) throw SlotFull()
+        return Booking(BookingId.new(), slotId, childId, parentId).also { _bookings += it }
+    }
+
     companion object {
         fun create(
             teacherId: TeacherId,

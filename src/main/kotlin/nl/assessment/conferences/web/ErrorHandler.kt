@@ -3,6 +3,8 @@ package nl.assessment.conferences.web
 import nl.assessment.conferences.domain.DomainException
 import nl.assessment.conferences.domain.EveningOverlaps
 import nl.assessment.conferences.domain.InvalidEvening
+import nl.assessment.conferences.domain.SlotFull
+import nl.assessment.conferences.domain.SlotNotFound
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.http.converter.HttpMessageNotReadableException
@@ -21,7 +23,8 @@ class ErrorHandler {
     fun domain(e: DomainException): ResponseEntity<ErrorResponse> {
         val status = when (e) {
             is InvalidEvening -> HttpStatus.BAD_REQUEST
-            is EveningOverlaps -> HttpStatus.CONFLICT
+            is EveningOverlaps, is SlotFull -> HttpStatus.CONFLICT
+            is SlotNotFound -> HttpStatus.NOT_FOUND
         }
         return ResponseEntity.status(status).body(ErrorResponse(e.code, e.message!!))
     }

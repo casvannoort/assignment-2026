@@ -4,3 +4,5 @@ sealed class DomainException(val code: String, message: String) : RuntimeExcepti
 
 class InvalidEvening(message: String) : DomainException("INVALID_EVENING", message)
 class EveningOverlaps : DomainException("EVENING_OVERLAPS", "the teacher already has an evening at this time")
+class SlotNotFound : DomainException("SLOT_NOT_FOUND", "slot not found in this evening")
+class SlotFull : DomainException("SLOT_FULL", "slot is full")

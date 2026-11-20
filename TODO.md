@@ -25,7 +25,7 @@ Tick a todo in the same commit that does the work. See the workflow in `PLAN.md`
 
 ## Phase 2: Parent books a conversation
 
-- [ ] Domain: book a slot; a full slot gives `SlotFull`
+- [x] Domain: book a slot; a full slot gives `SlotFull`
 - [ ] Domain: one booking per child per evening (`ChildAlreadyBooked`)
 - [ ] Domain: no booking after the evening's end time
 - [ ] Repository: lock on load (`FOR UPDATE`), upsert bookings
