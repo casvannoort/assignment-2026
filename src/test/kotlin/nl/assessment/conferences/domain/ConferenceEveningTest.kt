@@ -8,6 +8,7 @@ import java.time.LocalTime
 import java.util.UUID
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertTrue
 
 class ConferenceEveningTest {
 
@@ -68,5 +69,67 @@ class ConferenceEveningTest {
                 now = LocalDateTime.parse("2030-03-12T20:00"),
             )
         }
+    }
+
+    private val anna = ParentId(UUID.randomUUID())
+    private val emma = ChildId(UUID.randomUUID())
+    private val daan = ChildId(UUID.randomUUID())
+    private val lisa = ChildId(UUID.randomUUID())
+
+    @Test
+    fun `a parent books a conversation in a free slot`() {
+        val evening = evening("19:00", "20:00", 15)
+        val slot = evening.slots[1]
+
+        val booking = evening.book(emma, anna, slot.id, now)
+
+        assertEquals(Booking(booking.id, slot.id, emma, anna), booking)
+        assertEquals(listOf(booking), evening.bookings)
+    }
+
+    @Test
+    fun `a slot takes bookings up to its capacity`() {
+        val evening = evening("19:00", "20:00", 15, capacity = 2)
+        val slot = evening.slots[0].id
+
+        evening.book(emma, anna, slot, now)
+        evening.book(daan, anna, slot, now)
+
+        assertFailsWith<SlotFull> { evening.book(lisa, anna, slot, now) }
+        assertEquals(2, evening.bookings.size)
+    }
+
+    @Test
+    fun `booking an unknown slot fails`() {
+        val evening = evening("19:00", "20:00", 15)
+
+        assertFailsWith<SlotNotFound> { evening.book(emma, anna, SlotId.new(), now) }
+        assertTrue(evening.bookings.isEmpty())
+    }
+
+    @Test
+    fun `a child has at most one booking per evening`() {
+        val evening = evening("19:00", "20:00", 15)
+        val mark = ParentId(UUID.randomUUID())
+        evening.book(emma, anna, evening.slots[0].id, now)
+
+        assertFailsWith<ChildAlreadyBooked> { evening.book(emma, mark, evening.slots[1].id, now) }
+        assertEquals(1, evening.bookings.size)
+    }
+
+    @Test
+    fun `no booking once the evening has ended`() {
+        val evening = evening("19:00", "20:00", 15)
+        val atTheEnd = LocalDateTime.of(date, LocalTime.parse("20:00"))
+
+        assertFailsWith<EveningHasEnded> { evening.book(emma, anna, evening.slots[0].id, atTheEnd) }
+    }
+
+    @Test
+    fun `booking is still possible during the evening`() {
+        val evening = evening("19:00", "20:00", 15)
+        val duringTheEvening = LocalDateTime.of(date, LocalTime.parse("19:30"))
+
+        evening.book(emma, anna, evening.slots[3].id, duringTheEvening)
     }
 }

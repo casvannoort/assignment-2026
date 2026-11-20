@@ -1,7 +1,11 @@
 package nl.assessment.conferences.db
 
+import nl.assessment.conferences.domain.Booking
+import nl.assessment.conferences.domain.BookingId
+import nl.assessment.conferences.domain.ChildId
 import nl.assessment.conferences.domain.ConferenceEvening
 import nl.assessment.conferences.domain.EveningId
+import nl.assessment.conferences.domain.ParentId
 import nl.assessment.conferences.domain.Slot
 import nl.assessment.conferences.domain.SlotId
 import nl.assessment.conferences.domain.TeacherId
@@ -37,6 +41,16 @@ class ConferenceEveningRepository(private val jdbc: JdbcTemplate) {
                 slot.id.value, evening.id.value, slot.time.start, slot.time.end, slot.capacity,
             )
         }
+        evening.bookings.forEach { booking ->
+            jdbc.update(
+                """
+                INSERT INTO booking (id, evening_id, slot_id, child_id, booked_by)
+                VALUES (?, ?, ?, ?, ?)
+                ON CONFLICT (id) DO UPDATE SET slot_id = excluded.slot_id, booked_by = excluded.booked_by
+                """,
+                booking.id.value, evening.id.value, booking.slotId.value, booking.childId.value, booking.bookedBy.value,
+            )
+        }
     }
 
     /** Locks the teacher until the transaction ends, so their evenings can be checked and changed safely. */
@@ -51,10 +65,43 @@ class ConferenceEveningRepository(private val jdbc: JdbcTemplate) {
             teacherId.value, date, time.end, time.start,
         )!!
 
+    /** Locks the child until the transaction ends, so their bookings across evenings can be checked safely. */
+    fun lockChild(childId: ChildId) {
+        jdbc.query("SELECT id FROM child WHERE id = ? FOR UPDATE", { _ -> }, childId.value)
+    }
+
+    fun hasOverlappingBooking(childId: ChildId, date: LocalDate, time: TimeRange, otherThan: EveningId): Boolean =
+        jdbc.queryForObject(
+            """
+            SELECT EXISTS (
+                SELECT 1 FROM booking b
+                JOIN slot s ON s.id = b.slot_id
+                JOIN evening e ON e.id = b.evening_id
+                WHERE b.child_id = ? AND e.id <> ? AND e.date = ? AND s.start_time < ? AND ? < s.end_time
+            )
+            """,
+            Boolean::class.java,
+            childId.value, otherThan.value, date, time.end, time.start,
+        )!!
+
+    /** Loads the evening and locks its row until the transaction ends (pessimistic lock). */
     fun findById(id: EveningId): ConferenceEvening? {
+        // Lock first, so the slots and bookings read below cannot change until the transaction ends.
+        val exists = jdbc.query("SELECT id FROM evening WHERE id = ? FOR UPDATE", { _, _ -> }, id.value).isNotEmpty()
+        if (!exists) return null
         val slots = jdbc.query(
             "SELECT id, start_time, end_time, capacity FROM slot WHERE evening_id = ? ORDER BY start_time",
             { rs, _ -> Slot(SlotId(rs.uuid("id")), rs.timeRange(), rs.getInt("capacity")) },
+            id.value,
+        )
+        val bookings = jdbc.query(
+            "SELECT id, slot_id, child_id, booked_by FROM booking WHERE evening_id = ?",
+            { rs, _ ->
+                Booking(
+                    BookingId(rs.uuid("id")), SlotId(rs.uuid("slot_id")), ChildId(rs.uuid("child_id")),
+                    ParentId(rs.uuid("booked_by")),
+                )
+            },
             id.value,
         )
         return jdbc.query(
@@ -67,6 +114,7 @@ class ConferenceEveningRepository(private val jdbc: JdbcTemplate) {
                     time = rs.timeRange(),
                     conversationLength = Duration.ofMinutes(rs.getLong("conversation_minutes")),
                     slots = slots,
+                    bookings = bookings,
                 )
             },
             id.value,
