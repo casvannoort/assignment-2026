@@ -64,9 +64,9 @@ Queries that depend on "today" (upcoming evenings) get the date from the `Clock`
 ```
 domain/       pure Kotlin: aggregate, rules, errors               → unit tests
 command/      transactional: lock → check → call domain → save    → integration + e2e
-query/        read views, return response DTOs                    → integration + e2e
+query/        all read logic: views, lookups, response DTOs       → integration + e2e
 web/          controllers, error mapping, identity headers        → e2e
-db/           repository with JdbcTemplate, Flyway migrations     → integration
+db/           aggregate repository only (load, lock, save)        → integration
 ```
 
 ## Rules

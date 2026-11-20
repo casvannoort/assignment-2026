@@ -1,13 +1,13 @@
-package nl.assessment.conferences.db
+package nl.assessment.conferences.query
 
 import nl.assessment.conferences.domain.ParentId
 import nl.assessment.conferences.domain.TeacherId
 import nl.assessment.conferences.domain.User
 import org.springframework.jdbc.core.JdbcTemplate
-import org.springframework.stereotype.Repository
+import org.springframework.stereotype.Service
 import java.util.UUID
 
-@Repository
+@Service
 class UserDirectory(private val jdbc: JdbcTemplate) {
 
     fun find(id: UUID): User? = jdbc.query(

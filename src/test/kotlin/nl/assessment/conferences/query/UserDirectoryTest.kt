@@ -1,4 +1,4 @@
-package nl.assessment.conferences.db
+package nl.assessment.conferences.query
 
 import nl.assessment.conferences.TestcontainersConfiguration
 import nl.assessment.conferences.domain.ParentId

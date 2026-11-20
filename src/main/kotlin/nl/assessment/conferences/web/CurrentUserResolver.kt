@@ -1,6 +1,6 @@
 package nl.assessment.conferences.web
 
-import nl.assessment.conferences.db.UserDirectory
+import nl.assessment.conferences.query.UserDirectory
 import nl.assessment.conferences.domain.User
 import org.springframework.context.annotation.Configuration
 import org.springframework.core.MethodParameter
