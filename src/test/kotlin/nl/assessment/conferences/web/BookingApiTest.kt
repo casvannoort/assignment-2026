@@ -13,7 +13,9 @@ import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc
 import org.springframework.context.annotation.Import
 import org.springframework.test.web.servlet.MockMvc
+import org.springframework.http.MediaType
 import org.springframework.test.web.servlet.get
+import org.springframework.test.web.servlet.post
 import java.time.Duration
 import java.time.LocalTime
 import java.util.UUID
@@ -32,6 +34,7 @@ class BookingApiTest(
     private val anna = id(201)
     private val sara = id(203)
     private val emma = id(301)
+    private val daan = id(302)
 
     private fun eveningAtJansen(capacity: Int = 1) = evenings.create(
         TeacherId(msJansen), TestDates.unique(), LocalTime.parse("19:00"), LocalTime.parse("19:30"),
@@ -69,6 +72,50 @@ class BookingApiTest(
 
         mvc.get("/evenings/${evening.id.value}/slots") { header("X-User-Id", msJansen) }.andExpect {
             status { isForbidden() }
+        }
+    }
+
+    private fun book(parent: UUID, eveningId: Any, child: UUID, slotId: Any) =
+        mvc.post("/evenings/$eveningId/bookings") {
+            header("X-User-Id", parent)
+            contentType = MediaType.APPLICATION_JSON
+            content = """{"childId": "$child", "slotId": "$slotId"}"""
+        }
+
+    @Test
+    fun `a parent books a conversation`() {
+        val evening = eveningAtJansen()
+        val slot = evening.slots[1]
+
+        book(anna, evening.id.value, emma, slot.id.value).andExpect {
+            status { isCreated() }
+            jsonPath("$.id") { exists() }
+            jsonPath("$.childId") { value(emma.toString()) }
+            jsonPath("$.slotId") { value(slot.id.value.toString()) }
+        }
+    }
+
+    @Test
+    fun `booking a full slot gives 409 with a code`() {
+        val evening = eveningAtJansen(capacity = 1)
+        val slot = evening.slots[0].id.value
+        book(anna, evening.id.value, emma, slot)
+
+        book(sara, evening.id.value, daan, slot).andExpect {
+            status { isConflict() }
+            jsonPath("$.code") { value("SLOT_FULL") }
+        }
+    }
+
+    @Test
+    fun `booking at an unknown evening gives 404, a malformed id gives 400`() {
+        book(anna, UUID.randomUUID(), emma, UUID.randomUUID()).andExpect {
+            status { isNotFound() }
+            jsonPath("$.code") { value("EVENING_NOT_FOUND") }
+        }
+        book(anna, "not-an-id", emma, UUID.randomUUID()).andExpect {
+            status { isBadRequest() }
+            jsonPath("$.code") { value("INVALID_REQUEST") }
         }
     }
 }
