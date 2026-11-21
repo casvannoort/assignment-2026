@@ -154,6 +154,7 @@ Aim for good coverage of the rules and edge cases, with a logical pyramid: most 
 | 3 | Parent moves or cancels a booking | 4 |
 | 4 | Teacher sees the overview and removes a slot | 6, 7 |
 | 5 | README and DECISIONS.md | — |
+| 6 | Simulation: random and concurrent runs against the real API to find logic errors (see `SIMULATION.md`) | 1–7 (checked) |
 
 The todos per phase are in `TODO.md`.
 

@@ -61,7 +61,7 @@ Tick a todo in the same commit that does the work. See the workflow in `PLAN.md`
 - [x] README: how to start, the seed users, curl examples with a date far in the future
 - [x] DECISIONS.md: choices, the CQRS trade-off, what was left out, what breaks first at 100 schools, AI use (max 2 pages)
 
-## Simulation (branch `simulation`, see `SIMULATION.md`)
+## Phase 6: Simulation (see `SIMULATION.md`)
 
 - [x] Harness: `simulation` Gradle task and tag, `MutableClock`, copy of the assignment
 - [x] School generator: deterministic school, insert and reset
