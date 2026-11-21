@@ -35,6 +35,8 @@ class ConcurrentSimulationTest(
 
         assertTrue(run.findings.isEmpty(), "findings, see $report")
         assertTrue(run.outcomes.keys.all { it.matches(perAction) }, "outcomes not per action: ${run.outcomes.keys}")
+        assertTrue(run.log.all { "parent#" in it || "teacher#" in it }, "log lines without a person: ${run.log.take(3)}")
+        assertTrue(run.log.filter { " Book " in it || " Move " in it }.all { "child#" in it && "slot#" in it }, "book or move lines without child and slot")
         assertTrue(run.count("SLOT_FULL") > 0, "no contention on slots, see $report")
         assertTrue(run.count("CHILD_ALREADY_BOOKED") > 0, "no double clicks happened, see $report")
         assertTrue(run.count("CHILD_DOUBLE_BOOKED") > 0, "no child raced at two teachers, see $report")
