@@ -32,4 +32,13 @@ class ConcurrentChecksTest {
         assertEquals(1, ConcurrentChecks.confirmedWritesStand(listOf(UUID.randomUUID()), emptyList(), after).size)
         assertEquals(1, ConcurrentChecks.confirmedWritesStand(emptyList(), listOf(moved to s1), after).size)
     }
+
+    @Test
+    fun `after the end, a refused write is fine and an accepted one is a finding`() {
+        val book = Action.Book(UUID.randomUUID(), e, UUID.randomUUID(), s1)
+        val cancel = Action.Cancel(UUID.randomUUID(), e, kept)
+
+        assertEquals(emptyList(), ConcurrentChecks.refusedAfterEnd(listOf(book to 409, cancel to 409)))
+        assertEquals(1, ConcurrentChecks.refusedAfterEnd(listOf(book to 409, cancel to 204)).size)
+    }
 }

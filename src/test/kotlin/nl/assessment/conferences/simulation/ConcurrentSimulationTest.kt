@@ -37,5 +37,6 @@ class ConcurrentSimulationTest(
         assertTrue((run.outcomes["CHILD_ALREADY_BOOKED"] ?: 0) > 0, "no double clicks happened, see $report")
         assertTrue((run.outcomes["CHILD_DOUBLE_BOOKED"] ?: 0) > 0, "no child raced at two teachers, see $report")
         assertTrue((run.outcomes["EVENING_OVERLAPS"] ?: 0) > 0, "no teacher raced overlapping evenings, see $report")
+        assertTrue((run.outcomes["EVENING_HAS_ENDED"] ?: 0) > 0, "no writes after an evening ended, see $report")
     }
 }
