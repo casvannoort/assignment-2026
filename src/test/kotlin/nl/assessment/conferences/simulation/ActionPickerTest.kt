@@ -39,4 +39,13 @@ class ActionPickerTest {
         assertTrue(openShare > 0.6, "open evening picked ${"%.2f".format(openShare)} of the time")
         assertTrue(picked.any { it != open }, "ended evenings are never picked")
     }
+
+    @Test
+    fun `the picker sometimes creates an evening with capacity zero or below`() {
+        val picker = ActionPicker(Random(7), school)
+
+        val capacities = List(3000) { picker.next(state) }.map { it.action }.filterIsInstance<Action.CreateEvening>().mapNotNull { it.capacity }
+
+        assertTrue(capacities.any { it <= 0 }, "capacity is always 1 or more: ${capacities.toSet()}")
+    }
 }
