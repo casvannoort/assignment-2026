@@ -134,6 +134,28 @@ class ConferenceEveningTest {
     }
 
     @Test
+    fun `no booking into a slot that has started`() {
+        val evening = evening("19:00", "20:00", 15)
+        val atHalfPast = LocalDateTime.of(date, LocalTime.parse("19:30"))
+
+        assertFailsWith<SlotHasStarted> { evening.book(emma, anna, evening.slots[1].id, atHalfPast) }
+        assertFailsWith<SlotHasStarted> { evening.book(emma, anna, evening.slots[2].id, atHalfPast) }
+        assertTrue(evening.bookings.isEmpty())
+    }
+
+    @Test
+    fun `no moving into a slot that has started, but cancelling is still possible`() {
+        val evening = evening("19:00", "20:00", 15)
+        val booking = evening.book(emma, anna, evening.slots[3].id, now)
+        val atHalfPast = LocalDateTime.of(date, LocalTime.parse("19:30"))
+
+        assertFailsWith<SlotHasStarted> { evening.move(booking.id, evening.slots[2].id, anna, atHalfPast) }
+        assertEquals(evening.slots[3].id, evening.booking(booking.id).slotId)
+        evening.cancel(booking.id, atHalfPast)
+        assertTrue(evening.bookings.isEmpty())
+    }
+
+    @Test
     fun `a booking moves to another slot`() {
         val evening = evening("19:00", "20:00", 15)
         val booking = evening.book(emma, anna, evening.slots[0].id, now)

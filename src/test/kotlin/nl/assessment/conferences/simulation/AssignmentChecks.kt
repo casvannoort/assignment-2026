@@ -3,6 +3,7 @@ package nl.assessment.conferences.simulation
 import tools.jackson.databind.JsonNode
 import java.time.Duration
 import java.time.LocalTime
+import java.time.LocalDateTime
 import java.util.UUID
 
 /**
@@ -39,11 +40,13 @@ object AssignmentChecks {
         )
     }
 
-    /** 3. A parent sees the free slots of an evening. */
-    fun freeSlotsHaveRoom(evening: UUID, reply: Reply, snapshot: Snapshot): List<Finding> {
+    /** 3. A parent sees the free slots of an evening. Our own rule on top: a slot that has started is no longer offered. */
+    fun freeSlotsHaveRoom(evening: UUID, reply: Reply, snapshot: Snapshot, now: LocalDateTime): List<Finding> {
         if (reply.status != 200) return emptyList()
-        val expected = snapshot.slots.filter { s -> s.evening == evening && snapshot.bookings.count { it.slot == s.id } < s.capacity }
-            .map { it.id }.toSet()
+        val date = snapshot.evenings.firstOrNull { it.id == evening }?.date ?: return emptyList()
+        val expected = snapshot.slots.filter { s ->
+            s.evening == evening && snapshot.bookings.count { it.slot == s.id } < s.capacity && LocalDateTime.of(date, s.start).isAfter(now)
+        }.map { it.id }.toSet()
         val actual = reply.body!!.items().map { it.uuid("id") }.toSet()
         return listOfNotNull(
             finding(3, "free slots have room", "evening $evening listed $actual, expected $expected").takeIf { actual != expected },

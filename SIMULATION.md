@@ -2,7 +2,7 @@
 
 ## Why
 
-The 80 tests check examples we thought of ourselves. This simulation uses the app the way a school would, at a larger scale and with random and concurrent actions, to find logic errors: places where the app does something that does not follow the original assignment, or that breaks one of our own rules.
+The regular tests check examples we thought of ourselves. This simulation uses the app the way a school would, at a larger scale and with random and concurrent actions, to find logic errors: places where the app does something that does not follow the original assignment, or that breaks one of our own rules.
 
 ## Goals, non-goals, anti-goals
 

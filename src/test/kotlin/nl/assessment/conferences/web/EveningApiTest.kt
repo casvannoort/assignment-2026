@@ -71,6 +71,18 @@ class EveningApiTest(@Autowired private val mvc: MockMvc, @Autowired private val
     }
 
     @Test
+    fun `a conversation length too large for a duration gives 400, not 500`() {
+        mvc.post("/evenings") {
+            header("X-User-Id", msJansen)
+            contentType = MediaType.APPLICATION_JSON
+            content = """{"date": "$date", "start": "19:00", "end": "20:00", "conversationMinutes": 9223372036854775807}"""
+        }.andExpect {
+            status { isBadRequest() }
+            jsonPath("$.code") { value("INVALID_EVENING") }
+        }
+    }
+
+    @Test
     fun `an overlapping evening gives 409 with a code`() {
         createEvening(msJansen)
 

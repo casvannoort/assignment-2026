@@ -80,6 +80,7 @@ object Refusals {
                     otherSlot.start < slotRow.end && slotRow.start < otherSlot.end
             }
             "EVENING_HAS_ENDED" -> eveningRow != null && ended(eveningRow)
+            "SLOT_HAS_STARTED" -> slotRow != null && eveningRow != null && !LocalDateTime.of(eveningRow.date, slotRow.start).isAfter(now)
             "SLOT_HAS_BOOKINGS" -> slotRow != null && before.bookings.any { it.slot == slotRow.id }
             else -> false
         }

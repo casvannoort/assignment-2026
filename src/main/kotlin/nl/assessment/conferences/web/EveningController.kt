@@ -5,6 +5,7 @@ import nl.assessment.conferences.domain.ConferenceEvening
 import nl.assessment.conferences.domain.EveningId
 import nl.assessment.conferences.domain.SlotId
 import nl.assessment.conferences.domain.Forbidden
+import nl.assessment.conferences.domain.InvalidEvening
 import nl.assessment.conferences.domain.User
 import nl.assessment.conferences.query.EveningQueries
 import nl.assessment.conferences.query.FreeSlot
@@ -48,6 +49,8 @@ data class EveningResponse(
     )
 }
 
+private const val MINUTES_PER_DAY = 24 * 60L
+
 @RestController
 @RequestMapping("/evenings")
 class EveningController(
@@ -69,6 +72,8 @@ class EveningController(
     @ResponseStatus(HttpStatus.CREATED)
     fun create(user: User, @RequestBody request: CreateEveningRequest): EveningResponse {
         val teacher = user as? User.Teacher ?: throw Forbidden("only teachers can create evenings")
+        // Checked before Duration.ofMinutes, which overflows on huge numbers; the domain checks the rest.
+        if (request.conversationMinutes > MINUTES_PER_DAY) throw InvalidEvening("a conversation cannot last longer than a day")
         val evening = commands.create(
             teacher.id, request.date, request.start, request.end,
             Duration.ofMinutes(request.conversationMinutes), request.capacity,

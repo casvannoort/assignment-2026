@@ -23,7 +23,9 @@ import org.springframework.test.web.servlet.get
 import org.springframework.test.web.servlet.put
 import org.springframework.test.web.servlet.post
 import java.time.Duration
+import java.time.LocalDate
 import java.time.LocalTime
+import java.time.ZoneId
 import java.util.UUID
 
 @SpringBootTest
@@ -61,6 +63,23 @@ class BookingApiTest(
             jsonPath("$[0].start") { value("19:00:00") }
             jsonPath("$[0].freePlaces") { value(1) }
             jsonPath("$[1].freePlaces") { value(2) }
+        }
+    }
+
+    @Test
+    fun `free slots leave out slots that have started`() {
+        // An evening that runs all of today, with one slot at midnight (started) and one just before the end.
+        val today = LocalDate.now(ZoneId.of("Europe/Amsterdam"))
+        val running = UUID.randomUUID()
+        val started = UUID.randomUUID()
+        val later = UUID.randomUUID()
+        jdbc.update("INSERT INTO evening VALUES (?, ?, ?, TIME '00:00', TIME '23:59', 1)", running, msJansen, today)
+        jdbc.update("INSERT INTO slot VALUES (?, ?, TIME '00:00', TIME '00:01', 1), (?, ?, TIME '23:58', TIME '23:59', 1)", started, running, later, running)
+
+        mvc.get("/evenings/$running/slots") { header("X-User-Id", sara) }.andExpect {
+            status { isOk() }
+            jsonPath("$.length()") { value(1) }
+            jsonPath("$[0].id") { value(later.toString()) }
         }
     }
 

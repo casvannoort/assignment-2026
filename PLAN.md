@@ -156,6 +156,7 @@ Aim for good coverage of the rules and edge cases, with a logical pyramid: most 
 | 5 | README and DECISIONS.md | — |
 | 6 | Simulation: random and concurrent runs against the real API to find logic errors (see `SIMULATION.md`) | 1–7 (checked) |
 | 7 | Simulation improvements: test more on open evenings, cover the gaps the final review left, clearer reports | — |
+| 8 | Fixes from an independent review: no `500` on a huge conversation length, no booking into a slot that has started | 1, 3, 4 |
 
 The todos per phase are in `TODO.md`.
 
@@ -179,6 +180,20 @@ Phase 6 found no logic errors in the app. This phase makes that result stronger:
 - README: how to run `./gradlew simulation`, with `-Pseed`, `-Pseeds`, `-Psteps` and `-Pbursts`.
 
 **Done when** `./gradlew test` and `./gradlew simulation` pass, the report shows the new outcomes (`EVENING_HAS_ENDED` in concurrent mode, `400` for capacity), and `SIMULATION.md` Results is updated with a new run.
+
+## Phase 8: Fixes from an independent review
+
+A fresh reviewer, who only saw the assignment and the repository, checked a clean clone. All seven items work and `docker compose up -d` is enough. It found two bugs and two undocumented choices. Same workflow: a failing `test:` commit, then the commit that makes it pass and ticks the todo.
+
+**Bugs**
+- **`500` on a huge conversation length.** `"conversationMinutes": 9223372036854775807` overflows in `Duration.ofMinutes` before the domain can check it. A length longer than a day is now `400 INVALID_EVENING`, like any other invalid evening.
+- **A slot that has started can still be booked.** While an evening runs, a parent can book or move into a slot whose start time has passed. Booking or moving into such a slot now gives `409 SLOT_HAS_STARTED`. The parent's free-slot list leaves those slots out, so it never offers what cannot be booked. Cancelling stays allowed until the evening ends.
+
+**The simulation follows the new rule:** `SLOT_HAS_STARTED` becomes a known code with a reason the refusal checker can verify (the slot's start ≤ now), and "free slots are exactly the slots with room" also leaves out started slots.
+
+**Docs:** `DECISIONS.md` names the two choices in "Rules I chose where the assignment was open": leftover time shorter than one conversation is dropped, and a slot can no longer be booked once it has started.
+
+**Left out on purpose** (minor): `"capacity": 1.5` read as 1, Spring's default body for unknown paths and methods, slow saves on evenings with more than a thousand slots.
 
 ## Deliverables
 

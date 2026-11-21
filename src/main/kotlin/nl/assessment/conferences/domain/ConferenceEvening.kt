@@ -29,7 +29,7 @@ class ConferenceEvening(
     fun book(childId: ChildId, parentId: ParentId, slotId: SlotId, now: LocalDateTime): Booking {
         if (hasEnded(now)) throw EveningHasEnded()
         if (_bookings.any { it.childId == childId }) throw ChildAlreadyBooked()
-        ensureRoomIn(slotId)
+        ensureRoomIn(slotId, now)
         return Booking(BookingId.new(), slotId, childId, parentId).also { _bookings += it }
     }
 
@@ -37,7 +37,7 @@ class ConferenceEvening(
         if (hasEnded(now)) throw EveningHasEnded()
         val booking = booking(bookingId)
         if (booking.slotId == toSlotId) return booking
-        ensureRoomIn(toSlotId)
+        ensureRoomIn(toSlotId, now)
         val moved = booking.copy(slotId = toSlotId, bookedBy = parentId)
         _bookings[_bookings.indexOf(booking)] = moved
         return moved
@@ -57,8 +57,9 @@ class ConferenceEvening(
 
     fun booking(id: BookingId) = _bookings.find { it.id == id } ?: throw BookingNotFound()
 
-    private fun ensureRoomIn(slotId: SlotId) {
+    private fun ensureRoomIn(slotId: SlotId, now: LocalDateTime) {
         val slot = _slots.find { it.id == slotId } ?: throw SlotNotFound()
+        if (!LocalDateTime.of(date, slot.time.start).isAfter(now)) throw SlotHasStarted()
         if (_bookings.count { it.slotId == slotId } >= slot.capacity) throw SlotFull()
     }
 
