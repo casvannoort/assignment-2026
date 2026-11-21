@@ -73,19 +73,20 @@ Tick a todo in the same commit that does the work. See the workflow in `PLAN.md`
 - [x] Concurrent simulator with bursts and a capacity row
 - [x] Run the full simulation and fill in the results
 
-## Phase 7: Simulation improvements
+## Phase 7: Simulation improvements (see `PLAN.md`)
 
-Coverage (what the runs do not reach yet):
-- [ ] Sequential: start each seed on a fresh clock and keep runs shorter, so most steps hit evenings that are still open (now about a quarter hit ended evenings)
-- [ ] Concurrent: let some bursts pass an evening's end time, so the "nothing changes after the end" check also runs there
-- [ ] Picker: also send capacity 0 and below when creating an evening
-- [ ] Scenario S8: make the last assertion fail on "slot full", not on `403`
-- [ ] Removed-slot check: report it when the viewer cannot read `/slots`, instead of passing silently
+Coverage:
+- [ ] Picker: mostly pick evenings that are still open, sometimes an ended one
+- [ ] Concurrent: one wave per burst passes an evening's end time; book, move and cancel on it are all refused
+- [ ] Picker: sometimes send capacity 0 or -1 when creating an evening (`400`)
+- [ ] Scenario S8: extra check that moving into the full 19:00 slot gives `409 SLOT_FULL`
+- [ ] Removed-slot check: a non-`200` reply from `/slots` is a finding, not a pass
 
-Reports (easier to read a finding):
-- [ ] Count outcomes per action and code, not per code only
-- [ ] Concurrent log lines name the parent, child and slot; a lasting finding is reported once, not per wave
-- [ ] A violation that disappears and comes back on the same row is reported again
+Reports:
+- [ ] Count outcomes per action and code
+- [ ] Concurrent log lines name parent, child and slot; a lasting finding is reported once per run
+- [ ] A violation that comes back on the same row is reported again
 
-Docs:
+Docs and results:
 - [ ] README: how to run `./gradlew simulation` and its options
+- [ ] Run the full simulation again and update Results in `SIMULATION.md`

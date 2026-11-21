@@ -159,6 +159,27 @@ Aim for good coverage of the rules and edge cases, with a logical pyramid: most 
 
 The todos per phase are in `TODO.md`.
 
+## Phase 7: Simulation improvements
+
+Phase 6 found no logic errors in the app. This phase makes that result stronger: it closes the gaps the runs do not reach yet, and makes a finding easier to read. Only `src/test` changes; `src/main` stays as it is. Same workflow: a failing `test:` commit, then the commit that makes it pass and ticks the todo.
+
+**Coverage**
+- **Open evenings.** The clock moves forward during a run, so about a quarter of the steps hit evenings that have already ended. The picker mostly picks evenings that are still open (for example 4 in 5), and sometimes an ended one, so `EVENING_HAS_ENDED` stays covered.
+- **Ending during a burst.** Concurrent bursts never pass an evening's end time, so the "nothing changes after the end" invariant never runs there. One wave per burst moves the clock past the end of an evening with bookings, then sends book, move and cancel requests for it. All must be refused.
+- **Capacity 0 and below.** The picker never sends it. It sometimes sends 0 or -1 when creating an evening; the app must answer `400`.
+- **S8 tests "slot full".** Its last check passes through `403` (Lisa is not Jansen's child). An extra check: Sara moves Daan's booking into the full 19:00 slot and gets `409 SLOT_FULL`. The reviewer's line stays as written.
+- **No silent pass.** The removed-slot check passes when the parent cannot read `/slots`. A non-`200` reply becomes a finding ("could not check").
+
+**Reports**
+- Outcomes are counted per action and code (`book SLOT_FULL`), not per code only.
+- Concurrent log lines name the parent, child and slot by position. A finding that lasts is reported once per run, not once per wave.
+- A violation that disappears and comes back on the same row is reported again.
+
+**Docs**
+- README: how to run `./gradlew simulation`, with `-Pseed`, `-Pseeds`, `-Psteps` and `-Pbursts`.
+
+**Done when** `./gradlew test` and `./gradlew simulation` pass, the report shows the new outcomes (`EVENING_HAS_ENDED` in concurrent mode, `400` for capacity), and `SIMULATION.md` Results is updated with a new run.
+
 ## Deliverables
 
 - `README.md`: how to start the app and try it out. Curl examples use a date far in the future, so they do not expire.
