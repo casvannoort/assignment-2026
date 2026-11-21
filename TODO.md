@@ -72,3 +72,20 @@ Tick a todo in the same commit that does the work. See the workflow in `PLAN.md`
 - [x] Independent scenarios from a fresh reviewer, implemented word for word
 - [x] Concurrent simulator with bursts and a capacity row
 - [x] Run the full simulation and fill in the results
+
+## Phase 7: Simulation improvements
+
+Coverage (what the runs do not reach yet):
+- [ ] Sequential: start each seed on a fresh clock and keep runs shorter, so most steps hit evenings that are still open (now about a quarter hit ended evenings)
+- [ ] Concurrent: let some bursts pass an evening's end time, so the "nothing changes after the end" check also runs there
+- [ ] Picker: also send capacity 0 and below when creating an evening
+- [ ] Scenario S8: make the last assertion fail on "slot full", not on `403`
+- [ ] Removed-slot check: report it when the viewer cannot read `/slots`, instead of passing silently
+
+Reports (easier to read a finding):
+- [ ] Count outcomes per action and code, not per code only
+- [ ] Concurrent log lines name the parent, child and slot; a lasting finding is reported once, not per wave
+- [ ] A violation that disappears and comes back on the same row is reported again
+
+Docs:
+- [ ] README: how to run `./gradlew simulation` and its options
