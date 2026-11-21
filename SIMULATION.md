@@ -169,12 +169,15 @@ After each burst the invariants run, and `500`s and timeouts are counted in a "c
 
 ## Results
 
-Two overnight rounds with the same seeds. Round 1 used the checks from the build plan. Round 2 used the stronger checks added after the final review: refusals must have a true reason, views are checked for content, confirmed writes must stand, any `5xx` fails, and the picker also sends wrong roles, cross-evening and removed-slot requests. `src/main` was not changed for any run.
+Three rounds with the same seeds. Round 1 used the checks from the build plan. Round 2 used the stronger checks added after the final review: refusals must have a true reason, views are checked for content, confirmed writes must stand, any `5xx` fails, and the picker also sends wrong roles, cross-evening and removed-slot requests. Round 3 ran after phase 7: the picker mostly picks open evenings and also sends capacity 0 and below, and every concurrent burst also writes after an evening has ended. `src/main` was not changed for any run.
 
 | Round | Sequential | Concurrent | Findings |
 |---|---|---|---|
 | 1 (plan checks) | 500 seeds, 500,000 steps | 70 bursts, 37,824 requests | 0 |
 | 2 (strong checks) | 500 seeds, 500,000 steps | 70 bursts, 62,895 requests | 0 |
+| 3 (phase 7) | 500 seeds, 500,000 steps | 70 bursts, 76,881 requests | 0 |
+
+**Round 3 against round 2 (sequential):** steps on ended evenings dropped from 23% to 5% (`EVENING_HAS_ENDED` 117,525 → 25,013), so more steps hit live rules: `SLOT_FULL` 4,143 → 11,790, `CHILD_ALREADY_BOOKED` 3,626 → 10,203, `CHILD_DOUBLE_BOOKED` 299 → 896, `SLOT_HAS_BOOKINGS` 1,731 → 5,040, `INVALID_EVENING` 7,622. Concurrent: 14,000 writes after an evening ended, all refused with `EVENING_HAS_ENDED`.
 
 **Every key outcome was reached in round 2:**
 - **Sequential:** `SLOT_FULL` 4,143, `CHILD_ALREADY_BOOKED` 3,626, `CHILD_DOUBLE_BOOKED` 299, `FORBIDDEN` 96,602, `EVENING_HAS_ENDED` 117,525, `SLOT_HAS_BOOKINGS` 1,731, `BOOKING_NOT_FOUND` 9,612, `SLOT_NOT_FOUND` 7,439, `UNAUTHENTICATED` 9,848.
@@ -193,6 +196,5 @@ Two overnight rounds with the same seeds. Round 1 used the checks from the build
 **Layer 1:** all 17 scenarios from the independent reviewer pass. The reviewer marked three points where the assignment is silent: a length that does not divide the evening, the other parent moving a booking, and removing a booked slot.
 
 **What this does not show:**
-- In long runs the clock moves days ahead, so about a quarter of the sequential steps hit evenings that have already ended.
-- Concurrent bursts never end an evening.
-- Deferred review points are listed in the ledger.
+- The default run (5 seeds × 300 steps) reaches `CHILD_DOUBLE_BOOKED` only a few times, so a different small seed range can miss it and fail the coverage guard without an app error.
+- The reviewer's three open points (a length that does not divide the evening, the other parent moving, removing a booked slot) are decisions, not errors; the simulation checks that the app is consistent with them.

@@ -89,4 +89,4 @@ Reports:
 
 Docs and results:
 - [x] README: how to run `./gradlew simulation` and its options
-- [ ] Run the full simulation again and update Results in `SIMULATION.md`
+- [x] Run the full simulation again and update Results in `SIMULATION.md`
