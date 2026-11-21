@@ -36,12 +36,30 @@ class ConcurrentSimulator(private val api: Api, private val jdbc: JdbcTemplate, 
         val findings = mutableListOf<Finding>()
         val seen = mutableSetOf<Finding>()
 
+        // Log lines name people, children and slots by position, like the sequential log, so a line can be read without UUIDs.
+        val slotNames = ConcurrentHashMap<UUID, String>()
+        var bookedChild = emptyMap<UUID, UUID>()
+        fun person(id: UUID) = when (id) {
+            in school.teachers -> "teacher#${school.teachers.indexOf(id)}"
+            in school.parents -> "parent#${school.parents.indexOf(id)}"
+            else -> "unknown"
+        }
+        fun child(id: UUID?) = id?.let { "child#${school.children.indexOf(it)}" } ?: "unknown child"
+        fun describe(action: Action) = when (action) {
+            is Action.CreateEvening -> "${person(action.teacher)} creates ${action.date} ${action.start}-${action.end}"
+            is Action.Book -> "${person(action.parent)} books ${child(action.child)} at ${slotNames[action.slot]}"
+            is Action.Move -> "${person(action.parent)} moves ${child(bookedChild[action.booking])} to ${slotNames[action.slot]}"
+            is Action.Cancel -> "${person(action.parent)} cancels ${child(bookedChild[action.booking])}"
+            else -> action.toString()
+        }
+
         fun wave(name: String, actions: List<Action>, check: (List<Pair<Action, Int>>) -> List<Finding> = { emptyList() }) {
             val results = Collections.synchronizedList(mutableListOf<Pair<Action, Int>>())
             val created = Collections.synchronizedList(mutableListOf<UUID>())
             val moved = Collections.synchronizedList(mutableListOf<Pair<UUID, UUID>>())
             val serverErrors = Collections.synchronizedList(mutableListOf<Finding>())
             val start = CountDownLatch(1)
+            bookedChild = Snapshot.take(jdbc).bookings.associate { it.id to it.child }
             Executors.newVirtualThreadPerTaskExecutor().use { pool ->
                 actions.forEach { action ->
                     pool.submit {
@@ -58,7 +76,7 @@ class ConcurrentSimulator(private val api: Api, private val jdbc: JdbcTemplate, 
                             "$kind TIMEOUT"
                         }
                         outcomes.merge(outcome, 1, Int::plus)
-                        log += "$name -> $outcome"
+                        log += "$name: ${describe(action)} -> $outcome"
                     }
                 }
                 start.countDown()
@@ -85,6 +103,7 @@ class ConcurrentSimulator(private val api: Api, private val jdbc: JdbcTemplate, 
             }.filterValues { it.status == 201 }.mapValues { (_, reply) ->
                 reply.id() to reply.body!!["slots"].values().map { UUID.fromString(it["id"].asString()) }
             }
+            evenings.forEach { (teacher, evening) -> evening.second.forEachIndexed { k, slot -> slotNames[slot] = "${person(teacher)} slot#$k" } }
 
             wave("burst $burst one child at two teachers", school.children.filter {
                 school.parentsOf.getValue(it).size == 2 && school.teachersOf.getValue(it).size >= 2

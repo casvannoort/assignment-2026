@@ -84,7 +84,7 @@ Coverage:
 
 Reports:
 - [x] Count outcomes per action and code
-- [ ] Concurrent log lines name parent, child and slot; a lasting finding is reported once per run
+- [x] Concurrent log lines name parent, child and slot; a lasting finding is reported once per run (already so since `c79443c`)
 - [ ] A violation that comes back on the same row is reported again
 
 Docs and results:
