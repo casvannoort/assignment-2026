@@ -46,3 +46,20 @@ tasks.withType<Test> {
     useJUnitPlatform()
     jvmArgs("--enable-native-access=ALL-UNNAMED")
 }
+
+tasks.test {
+    useJUnitPlatform { excludeTags("simulation") }
+}
+
+val simulation by tasks.registering(Test::class) {
+    description = "Runs the simulation that looks for logic errors (see SIMULATION.md)."
+    group = "verification"
+    testClassesDirs = sourceSets.test.get().output.classesDirs
+    classpath = sourceSets.test.get().runtimeClasspath
+    useJUnitPlatform { includeTags("simulation") }
+    systemProperty("seed", findProperty("seed") ?: "1")
+    systemProperty("seeds", findProperty("seeds") ?: "5")
+    systemProperty("bursts", findProperty("bursts") ?: "1")
+    systemProperty("steps", findProperty("steps") ?: "300")
+    outputs.upToDateWhen { false }
+}

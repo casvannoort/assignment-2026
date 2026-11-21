@@ -60,3 +60,15 @@ Tick a todo in the same commit that does the work. See the workflow in `PLAN.md`
 
 - [x] README: how to start, the seed users, curl examples with a date far in the future
 - [x] DECISIONS.md: choices, the CQRS trade-off, what was left out, what breaks first at 100 schools, AI use (max 2 pages)
+
+## Phase 6: Simulation (see `SIMULATION.md`)
+
+- [x] Harness: `simulation` Gradle task and tag, `MutableClock`, copy of the assignment
+- [x] School generator: deterministic school, insert and reset
+- [x] API client and consistency checker (before/after per request)
+- [x] Layer 2 invariants, each proven by a test that breaks the database on purpose
+- [x] Layer 1 assignment checks, one per assignment item
+- [x] Sequential simulator with outcome counts and report
+- [x] Independent scenarios from a fresh reviewer, implemented word for word
+- [x] Concurrent simulator with bursts and a capacity row
+- [x] Run the full simulation and fill in the results
