@@ -53,12 +53,12 @@ class ConcurrentSimulator(private val api: Api, private val jdbc: JdbcTemplate, 
                             if (action is Action.Book && reply.status == 201) created += reply.id()
                             if (action is Action.Move && reply.status == 200) moved += action.booking to action.slot
                             if (reply.status >= 500) serverErrors += Finding("C.3 no server error", "$action gave ${reply.status}")
-                            reply.code ?: if (reply.status >= 500) "SERVER_ERROR" else "$kind ${reply.status}"
+                            "$kind ${reply.code ?: if (reply.status >= 500) "SERVER_ERROR" else reply.status}"
                         } catch (e: HttpTimeoutException) {
-                            "TIMEOUT"
+                            "$kind TIMEOUT"
                         }
                         outcomes.merge(outcome, 1, Int::plus)
-                        log += "$name $kind -> $outcome"
+                        log += "$name -> $outcome"
                     }
                 }
                 start.countDown()

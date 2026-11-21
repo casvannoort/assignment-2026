@@ -83,7 +83,7 @@ Coverage:
 - [x] Removed-slot check: a non-`200` reply from `/slots` is a finding, not a pass
 
 Reports:
-- [ ] Count outcomes per action and code
+- [x] Count outcomes per action and code
 - [ ] Concurrent log lines name parent, child and slot; a lasting finding is reported once per run
 - [ ] A violation that comes back on the same row is reported again
 

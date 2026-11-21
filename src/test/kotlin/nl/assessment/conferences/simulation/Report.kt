@@ -23,6 +23,10 @@ object Report {
             appendLine("## Outcomes")
             outcomes.toSortedMap().forEach { (k, v) -> appendLine("- $k: $v") }
             appendLine()
+            appendLine("## Per result, over all actions")
+            outcomes.entries.groupBy({ it.key.substringAfterLast(' ') }, { it.value }).toSortedMap()
+                .forEach { (k, v) -> appendLine("- $k: ${v.sum()}") }
+            appendLine()
             appendLine("## Findings (${findings.values.sumOf { it.size }})")
             findings.toSortedMap().forEach { (check, list) ->
                 appendLine("- **$check**: ${list.size}")
