@@ -14,6 +14,7 @@ import java.time.LocalDate
 import java.time.LocalTime
 import java.util.UUID
 import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 
 @Tag("simulation")
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
@@ -83,5 +84,10 @@ class ConsistencyTest(@Autowired private val jdbc: JdbcTemplate, @LocalServerPor
 
         assertEquals(emptyList(), Consistency.check(create, reply, before, after))
         assertEquals(1, Consistency.check(create, reply, before, oneSlotLost).size)
+    }
+
+    @Test
+    fun `a slot that has started is a known refusal`() {
+        assertTrue("SLOT_HAS_STARTED" in Consistency.knownCodes)
     }
 }

@@ -87,4 +87,12 @@ class RefusalsTest {
         assertEquals(0, check(Action.Book(parent, e, sibling, UUID.randomUUID()), "SLOT_NOT_FOUND"))
         assertEquals(1, check(Action.Book(parent, e, sibling, s2), "SLOT_NOT_FOUND"))
     }
+
+    @Test
+    fun `slot has started only from its start time`() {
+        val atQuarterPast = LocalDateTime.parse("2030-02-01T19:15")
+
+        assertEquals(0, Refusals.check(Action.Book(parent, e, sibling, s2), refused("SLOT_HAS_STARTED"), before, atQuarterPast, school).size)
+        assertEquals(1, check(Action.Book(parent, e, sibling, s2), "SLOT_HAS_STARTED"))
+    }
 }

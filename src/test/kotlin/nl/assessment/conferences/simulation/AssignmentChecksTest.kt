@@ -4,6 +4,7 @@ import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
 import tools.jackson.databind.json.JsonMapper
 import java.time.LocalDate
+import java.time.LocalDateTime
 import java.time.LocalTime
 import java.util.UUID
 import kotlin.test.assertEquals
@@ -54,8 +55,17 @@ class AssignmentChecksTest {
 
     @Test
     fun `3 a parent sees exactly the slots that still have room`() {
-        assertEquals(emptyList(), AssignmentChecks.freeSlotsHaveRoom(e, reply(200, """[{"id": "$s2"}]"""), snapshot))
-        assertEquals(1, AssignmentChecks.freeSlotsHaveRoom(e, reply(200, """[{"id": "$s1"}, {"id": "$s2"}]"""), snapshot).size)
+        val noon = LocalDateTime.parse("2030-02-01T12:00")
+        assertEquals(emptyList(), AssignmentChecks.freeSlotsHaveRoom(e, reply(200, """[{"id": "$s2"}]"""), snapshot, noon))
+        assertEquals(1, AssignmentChecks.freeSlotsHaveRoom(e, reply(200, """[{"id": "$s1"}, {"id": "$s2"}]"""), snapshot, noon).size)
+    }
+
+    @Test
+    fun `3 free slots leave out slots that have started`() {
+        val atQuarterPast = LocalDateTime.parse("2030-02-01T19:15")
+
+        assertEquals(emptyList(), AssignmentChecks.freeSlotsHaveRoom(e, reply(200, "[]"), snapshot, atQuarterPast))
+        assertEquals(1, AssignmentChecks.freeSlotsHaveRoom(e, reply(200, """[{"id": "$s2"}]"""), snapshot, atQuarterPast).size)
     }
 
     @Test
