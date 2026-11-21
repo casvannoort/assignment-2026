@@ -123,11 +123,15 @@ class AssignmentScenariosTest(@Autowired private val jdbc: JdbcTemplate, @LocalS
     fun `S8 free slots shrink as they fill`() {
         val e = create()
         is2xx(book(anna, e, emma, "19:00"))
-        is2xx(book(sara, e, daan, "19:15"))
+        val daansBooking = book(sara, e, daan, "19:15").also(::is2xx).id()
 
         assertEquals(setOf("19:30", "19:45"), freeSlots(sara, e))
         // "with another child": Jansen teaches only Emma and Daan, so Lisa is the only other test child.
         is4xx(book(id(204), e, id(303), "19:00"))
+        // Lisa is refused because she is not Jansen's child, so the line above never reaches "slot full".
+        // Added check, not from the reviewer: Daan, who may book here, cannot get into the full 19:00 slot.
+        val moved = api.send(Action.Move(sara, e.id, daansBooking, e.slots.getValue("19:00")))
+        assertEquals(409 to "SLOT_FULL", moved.status to moved.code)
     }
 
     @Test

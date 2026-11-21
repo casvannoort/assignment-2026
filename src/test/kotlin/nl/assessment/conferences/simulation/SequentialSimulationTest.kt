@@ -35,6 +35,8 @@ class SequentialSimulationTest(
 
         assertEquals(50, run.log.size)
         assertEquals(50, run.outcomes.values.sum())
+        val perAction = Regex("(CreateEvening|Book|Move|Cancel|RemoveSlot|Read) \\S+|advance clock")
+        assertTrue(run.outcomes.keys.all { it.matches(perAction) }, "outcomes not per action: ${run.outcomes.keys}")
     }
 
     @Test
@@ -47,7 +49,7 @@ class SequentialSimulationTest(
         val report = Report.write("sequential", runs)
 
         assertTrue(runs.all { it.findings.isEmpty() }, "findings, see $report")
-        val missing = Report.keyOutcomes - runs.flatMap { it.outcomes.keys }.toSet()
+        val missing = Report.keyOutcomes.filter { code -> runs.sumOf { it.count(code) } == 0 }
         assertTrue(missing.isEmpty(), "never reached $missing, see $report")
     }
 
@@ -58,7 +60,7 @@ class SequentialSimulationTest(
         assertTrue(run.log.any { "wrong-role" in it }, "no wrong-role requests")
         assertTrue(run.log.any { "removed-slot" in it }, "no requests to removed slots")
         assertTrue(run.log.any { "other-evening" in it }, "no cross-evening requests")
-        assertTrue((run.outcomes["BOOKING_NOT_FOUND"] ?: 0) > 0, "BOOKING_NOT_FOUND never reached")
+        assertTrue(run.count("BOOKING_NOT_FOUND") > 0, "BOOKING_NOT_FOUND never reached")
     }
 
     @Test

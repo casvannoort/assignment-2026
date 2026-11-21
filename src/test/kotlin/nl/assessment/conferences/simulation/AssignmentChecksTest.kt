@@ -117,6 +117,14 @@ class AssignmentChecksTest {
     }
 
     @Test
+    fun `7 a removed slot that cannot be checked is a finding, not a pass`() {
+        val overview = reply(200, """[{"slotId": "$s1", "conversations": []}]""")
+
+        assertEquals(1, AssignmentChecks.removedSlotIsGone(s2, overview, Reply(404, null)).size)
+        assertEquals(1, AssignmentChecks.removedSlotIsGone(s2, Reply(403, null), reply(200, "[]")).size)
+    }
+
+    @Test
     fun `the evening list shows a teacher their own evenings and a parent the upcoming ones of their children's teachers`() {
         val school = School(listOf(t), listOf(parent), listOf(child), mapOf(child to listOf(parent)), mapOf(child to listOf(t)))
         val now = java.time.LocalDateTime.parse("2030-02-01T12:00")

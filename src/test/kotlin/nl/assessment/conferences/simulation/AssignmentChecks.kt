@@ -124,8 +124,11 @@ object AssignmentChecks {
 
     /** 7. A teacher can remove a slot, for example for a break. */
     fun removedSlotIsGone(slot: UUID, overview: Reply, freeSlots: Reply): List<Finding> {
-        val inOverview = overview.status == 200 && overview.body!!.items().any { it.uuid("slotId") == slot }
-        val inFreeSlots = freeSlots.status == 200 && freeSlots.body!!.items().any { it.uuid("id") == slot }
+        if (overview.status != 200 || freeSlots.status != 200) {
+            return listOf(finding(7, "removed slot is gone", "could not check slot $slot: overview ${overview.status}, free slots ${freeSlots.status}"))
+        }
+        val inOverview = overview.body!!.items().any { it.uuid("slotId") == slot }
+        val inFreeSlots = freeSlots.body!!.items().any { it.uuid("id") == slot }
         return listOfNotNull(finding(7, "removed slot is gone", "slot $slot still listed").takeIf { inOverview || inFreeSlots })
     }
 }

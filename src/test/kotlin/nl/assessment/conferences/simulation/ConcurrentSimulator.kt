@@ -17,7 +17,8 @@ import kotlin.random.Random
  * 1. every teacher creates the same evening twice plus an overlapping one (teacher lock);
  * 2. both parents of a child book that child at two teachers at the same time (child lock);
  * 3. hundreds of parents book, with double clicks (evening lock);
- * 4. a third of the bookings move.
+ * 4. a third of the bookings move;
+ * 5. the clock passes the end of those evenings, then parents book, move and cancel on them; all must be refused.
  * After each wave: the invariants, and whether every confirmed booking and move still stands.
  * Comparing before and after per request would report false races, so that only runs in sequential mode.
  */
@@ -33,13 +34,32 @@ class ConcurrentSimulator(private val api: Api, private val jdbc: JdbcTemplate, 
         val log = Collections.synchronizedList(mutableListOf<String>())
         val outcomes = ConcurrentHashMap<String, Int>()
         val findings = mutableListOf<Finding>()
-        val seen = mutableSetOf<Finding>()
+        val new = NewFindings()
 
-        fun wave(name: String, actions: List<Action>) {
+        // Log lines name people, children and slots by position, like the sequential log, so a line can be read without UUIDs.
+        val slotNames = ConcurrentHashMap<UUID, String>()
+        var bookedChild = emptyMap<UUID, UUID>()
+        fun person(id: UUID) = when (id) {
+            in school.teachers -> "teacher#${school.teachers.indexOf(id)}"
+            in school.parents -> "parent#${school.parents.indexOf(id)}"
+            else -> "unknown"
+        }
+        fun child(id: UUID?) = id?.let { "child#${school.children.indexOf(it)}" } ?: "unknown child"
+        fun describe(action: Action) = when (action) {
+            is Action.CreateEvening -> "${person(action.teacher)} creates ${action.date} ${action.start}-${action.end}"
+            is Action.Book -> "${person(action.parent)} books ${child(action.child)} at ${slotNames[action.slot]}"
+            is Action.Move -> "${person(action.parent)} moves ${child(bookedChild[action.booking])} to ${slotNames[action.slot]}"
+            is Action.Cancel -> "${person(action.parent)} cancels ${child(bookedChild[action.booking])}"
+            else -> action.toString()
+        }
+
+        fun wave(name: String, actions: List<Action>, check: (List<Pair<Action, Int>>) -> List<Finding> = { emptyList() }) {
+            val results = Collections.synchronizedList(mutableListOf<Pair<Action, Int>>())
             val created = Collections.synchronizedList(mutableListOf<UUID>())
             val moved = Collections.synchronizedList(mutableListOf<Pair<UUID, UUID>>())
             val serverErrors = Collections.synchronizedList(mutableListOf<Finding>())
             val start = CountDownLatch(1)
+            bookedChild = Snapshot.take(jdbc).bookings.associate { it.id to it.child }
             Executors.newVirtualThreadPerTaskExecutor().use { pool ->
                 actions.forEach { action ->
                     pool.submit {
@@ -47,27 +67,29 @@ class ConcurrentSimulator(private val api: Api, private val jdbc: JdbcTemplate, 
                         val kind = action::class.simpleName
                         val outcome = try {
                             val reply = api.send(action)
+                            results += action to reply.status
                             if (action is Action.Book && reply.status == 201) created += reply.id()
                             if (action is Action.Move && reply.status == 200) moved += action.booking to action.slot
                             if (reply.status >= 500) serverErrors += Finding("C.3 no server error", "$action gave ${reply.status}")
-                            reply.code ?: if (reply.status >= 500) "SERVER_ERROR" else "$kind ${reply.status}"
+                            "$kind ${reply.code ?: if (reply.status >= 500) "SERVER_ERROR" else reply.status}"
                         } catch (e: HttpTimeoutException) {
-                            "TIMEOUT"
+                            "$kind TIMEOUT"
                         }
                         outcomes.merge(outcome, 1, Int::plus)
-                        log += "$name $kind -> $outcome"
+                        log += "$name: ${describe(action)} -> $outcome"
                     }
                 }
                 start.countDown()
             }
             val after = Snapshot.take(jdbc)
             val found = Invariants.check(jdbc, LocalDateTime.now(clock), ended) +
-                ConcurrentChecks.confirmedWritesStand(created, moved, after) + serverErrors
-            findings += found.filter { seen.add(it) }.map { it.copy(message = "seed $seed $name (intermittent): ${it.message}") }
+                ConcurrentChecks.confirmedWritesStand(created, moved, after) + serverErrors + check(results.toList())
+            findings += new.of(found).map { it.copy(message = "seed $seed $name (intermittent): ${it.message}") }
         }
 
         repeat(bursts) { burst ->
-            val today = LocalDateTime.now(clock).toLocalDate()
+            val burstStart = LocalDateTime.now(clock)
+            val today = burstStart.toLocalDate()
 
             val overlapDay = today.plusDays(2)
             wave("burst $burst overlapping evenings", school.teachers.flatMap { t ->
@@ -81,6 +103,7 @@ class ConcurrentSimulator(private val api: Api, private val jdbc: JdbcTemplate, 
             }.filterValues { it.status == 201 }.mapValues { (_, reply) ->
                 reply.id() to reply.body!!["slots"].values().map { UUID.fromString(it["id"].asString()) }
             }
+            evenings.forEach { (teacher, evening) -> evening.second.forEachIndexed { k, slot -> slotNames[slot] = "${person(teacher)} slot#$k" } }
 
             wave("burst $burst one child at two teachers", school.children.filter {
                 school.parentsOf.getValue(it).size == 2 && school.teachersOf.getValue(it).size >= 2
@@ -107,7 +130,15 @@ class ConcurrentSimulator(private val api: Api, private val jdbc: JdbcTemplate, 
                 Action.Move(school.parentsOf.getValue(b.child).first(), b.evening, b.id, slots[random.nextInt(slots.size)])
             })
 
-            clock.advance(Duration.ofDays(3))
+            clock.advance(Duration.between(LocalDateTime.now(clock), date.atTime(21, 1)))
+            val left = Snapshot.take(jdbc).bookings.filter { b -> evenings.values.any { it.first == b.evening } }.shuffled(random).take(100)
+            wave("burst $burst after the end", (left.mapIndexed { i, b ->
+                val parent = school.parentsOf.getValue(b.child).first()
+                if (i % 2 == 0) Action.Cancel(parent, b.evening, b.id)
+                else Action.Move(parent, b.evening, b.id, evenings.values.first { it.first == b.evening }.second.first())
+            } + bookings.shuffled(random).take(100)).shuffled(random), ConcurrentChecks::refusedAfterEnd)
+
+            clock.advance(Duration.between(LocalDateTime.now(clock), burstStart.plusDays(3)))
         }
         return RunResult(seed, log.toList(), outcomes.toMap(), findings)
     }

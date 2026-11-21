@@ -58,6 +58,21 @@ class ActionPicker(private val random: Random, private val school: School) {
         }
     }
 
+    /** Mostly an evening that is still open, so most steps test live rules; sometimes any evening, ended ones too. */
+    private fun eveningIndex(state: State): Int {
+        val open = state.evenings.indices.filter { i ->
+            state.snapshot.evenings.first { it.id == state.evenings[i] }.let { it.date.atTime(it.end) > state.now }
+        }
+        return if (open.isNotEmpty() && chance(80)) open.pick() else state.evenings.indices.toList().pick()
+    }
+
+    /** A booking, mostly on an evening that is still open; returns its position in the fixed order and the booking. */
+    private fun booking(state: State): IndexedValue<BookingRow>? {
+        val all = bookings(state).withIndex().toList().ifEmpty { return null }
+        val open = all.filter { b -> state.snapshot.evenings.first { it.id == b.value.evening }.let { it.date.atTime(it.end) > state.now } }
+        return if (open.isNotEmpty() && chance(80)) open.pick() else all.pick()
+    }
+
     private fun slotsOf(state: State, evening: UUID) =
         state.snapshot.slots.filter { it.evening == evening }.sortedBy { it.start }
 
@@ -94,7 +109,7 @@ class ActionPicker(private val random: Random, private val school: School) {
         var minutes = listOf(10L, 15L, 20L).pick()
         if (chance(5)) length = -30
         if (chance(3)) minutes = 0
-        val capacity = listOf(null, null, 1, 2, 3).pick()
+        val capacity = if (chance(3)) listOf(0, -1).pick() else listOf(null, null, 1, 2, 3).pick()
         val action = Action.CreateEvening(
             teacher, state.now.toLocalDate().plusDays(day), start, start.plusMinutes(length), minutes, capacity,
         )
@@ -105,7 +120,7 @@ class ActionPicker(private val random: Random, private val school: School) {
         val (parent, who) = actor(school.parents.pick())
         val own = if (parent in school.parents) school.childrenOf(parent) else emptyList()
         val child = if (own.isNotEmpty() && chance(85)) own.pick() else school.children.pick()
-        val eveningIndex = state.evenings.indices.toList().pick()
+        val eveningIndex = eveningIndex(state)
         val evening = state.evenings[eveningIndex]
         val (slot, slotName) = slotFor(state, evening)
         return Pick(
@@ -115,9 +130,7 @@ class ActionPicker(private val random: Random, private val school: School) {
     }
 
     private fun move(state: State): Pick? {
-        val all = bookings(state).ifEmpty { return null }
-        val index = all.indices.toList().pick()
-        val booking = all[index]
+        val (index, booking) = booking(state) ?: return null
         val (parent, who) = actor(if (chance(85)) school.parentsOf.getValue(booking.child).pick() else school.parents.pick())
         val (slot, slotName) = slotFor(state, booking.evening)
         val (evening, via) = urlEvening(state, booking.evening)
@@ -125,16 +138,14 @@ class ActionPicker(private val random: Random, private val school: School) {
     }
 
     private fun cancel(state: State): Pick? {
-        val all = bookings(state).ifEmpty { return null }
-        val index = all.indices.toList().pick()
-        val booking = all[index]
+        val (index, booking) = booking(state) ?: return null
         val (parent, who) = actor(if (chance(85)) school.parentsOf.getValue(booking.child).pick() else school.parents.pick())
         val (evening, via) = urlEvening(state, booking.evening)
         return Pick(Action.Cancel(parent, evening, booking.id), "cancel $who booking#$index $via".trim(), evening)
     }
 
     private fun removeSlot(state: State): Pick {
-        val eveningIndex = state.evenings.indices.toList().pick()
+        val eveningIndex = eveningIndex(state)
         val evening = state.evenings[eveningIndex]
         val owner = state.snapshot.evenings.first { it.id == evening }.teacher
         val (teacher, who) = actor(if (chance(80)) owner else school.teachers.pick())
@@ -143,7 +154,7 @@ class ActionPicker(private val random: Random, private val school: School) {
     }
 
     private fun read(state: State): Pick {
-        val eveningIndex = state.evenings.indices.toList().pick()
+        val eveningIndex = eveningIndex(state)
         val evening = state.evenings[eveningIndex]
         val owner = state.snapshot.evenings.first { it.id == evening }.teacher
         return when (random.nextInt(4)) {

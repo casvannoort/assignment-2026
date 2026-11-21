@@ -93,3 +93,21 @@ Requires Java 25 and Docker. Testcontainers starts a real PostgreSQL for the tes
 ```
 
 With [mise](https://mise.jdx.dev), `mise install` gets the right Java version from `mise.toml`.
+
+## Simulation
+
+A separate run that uses the app the way a school would, through the real API, to look for logic errors. It is not part of `./gradlew test`. How it works and what it found: [SIMULATION.md](SIMULATION.md).
+
+```bash
+./gradlew simulation                                    # 5 seeds × 300 steps, 1 concurrent burst
+./gradlew simulation -Pseed=42 -Pseeds=20 -Psteps=1000 -Pbursts=5
+```
+
+| Option | Default | What |
+|---|---|---|
+| `-Pseed` | 1 | first seed; the same seed gives the same sequential run |
+| `-Pseeds` | 5 | number of seeds, each a new school |
+| `-Psteps` | 300 | random steps per seed |
+| `-Pbursts` | 1 | concurrent bursts of parents booking at once |
+
+The report and the step logs are in `build/simulation/`. The run fails on any finding, or when a key outcome (for example `SLOT_FULL`) never happened.

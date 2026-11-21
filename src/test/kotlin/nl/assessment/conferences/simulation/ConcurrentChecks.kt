@@ -11,4 +11,9 @@ object ConcurrentChecks {
             moved.filter { (booking, slot) -> byId[booking]?.slot != slot }
                 .map { (booking, slot) -> Finding("C.2 confirmed move took effect", "booking $booking got 200 for slot $slot but is elsewhere") }
     }
+
+    /** After an evening's end time nothing may change, so every write sent then must be refused. */
+    fun refusedAfterEnd(results: List<Pair<Action, Int>>): List<Finding> =
+        results.filter { (_, status) -> status < 400 }
+            .map { (action, status) -> Finding("C.4 refused after the end", "$action gave $status after the evening ended") }
 }

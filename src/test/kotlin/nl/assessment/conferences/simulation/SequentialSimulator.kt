@@ -6,7 +6,11 @@ import java.time.LocalDateTime
 import java.util.UUID
 import kotlin.random.Random
 
-data class RunResult(val seed: Long, val log: List<String>, val outcomes: Map<String, Int>, val findings: List<Finding>)
+/** `outcomes` counts per action and result, for example "Book SLOT_FULL" or "Move 200". */
+data class RunResult(val seed: Long, val log: List<String>, val outcomes: Map<String, Int>, val findings: List<Finding>) {
+    /** How often a result happened, over all actions. */
+    fun count(result: String) = outcomes.filterKeys { it.substringAfterLast(' ') == result }.values.sum()
+}
 
 /** Runs random steps one after the other against the real app, and checks everything after every step. */
 class SequentialSimulator(private val api: Api, private val jdbc: JdbcTemplate, private val clock: MutableClock) {
@@ -23,7 +27,7 @@ class SequentialSimulator(private val api: Api, private val jdbc: JdbcTemplate, 
         val log = mutableListOf<String>()
         val outcomes = mutableMapOf<String, Int>()
         val findings = mutableListOf<Finding>()
-        val seen = mutableSetOf<Finding>()
+        val new = NewFindings()
 
         repeat(steps) { step ->
             try {
@@ -44,13 +48,11 @@ class SequentialSimulator(private val api: Api, private val jdbc: JdbcTemplate, 
                     found += assignmentChecks(pick, reply, before, after, school, requestedAt)
                 }
                 found += Invariants.check(jdbc, now(), ended)
-                // A broken state stays broken: report each violation once, at the step that caused it.
-                findings += found.filter { seen.add(it) }.map { it.copy(message = "seed $seed step $step: ${it.message}") }
+                findings += new.of(found).map { it.copy(message = "seed $seed step $step: ${it.message}") }
 
                 val outcome = when {
                     reply == null -> "advance clock"
-                    reply.code != null -> reply.code!!
-                    else -> "${action::class.simpleName} ${reply.status}"
+                    else -> "${action::class.simpleName} ${reply.code ?: reply.status}"
                 }
                 outcomes.merge(outcome, 1, Int::plus)
                 log += "$step ${pick.describe} -> ${reply?.status ?: "-"} ${reply?.code ?: ""}".trim()
