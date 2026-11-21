@@ -23,6 +23,7 @@ class ConcurrentSimulationTest(
     @LocalServerPort port: Int,
 ) {
     private val simulator = ConcurrentSimulator(Api(port), jdbc, clock)
+    private val perAction = Regex("(CreateEvening|Book|Move|Cancel) \\S+")
 
     @Test
     fun `bursts of parents booking at once keep every invariant`() {
@@ -33,10 +34,11 @@ class ConcurrentSimulationTest(
         val report = Report.write("concurrent", listOf(run))
 
         assertTrue(run.findings.isEmpty(), "findings, see $report")
-        assertTrue((run.outcomes["SLOT_FULL"] ?: 0) > 0, "no contention on slots, see $report")
-        assertTrue((run.outcomes["CHILD_ALREADY_BOOKED"] ?: 0) > 0, "no double clicks happened, see $report")
-        assertTrue((run.outcomes["CHILD_DOUBLE_BOOKED"] ?: 0) > 0, "no child raced at two teachers, see $report")
-        assertTrue((run.outcomes["EVENING_OVERLAPS"] ?: 0) > 0, "no teacher raced overlapping evenings, see $report")
-        assertTrue((run.outcomes["EVENING_HAS_ENDED"] ?: 0) > 0, "no writes after an evening ended, see $report")
+        assertTrue(run.outcomes.keys.all { it.matches(perAction) }, "outcomes not per action: ${run.outcomes.keys}")
+        assertTrue(run.count("SLOT_FULL") > 0, "no contention on slots, see $report")
+        assertTrue(run.count("CHILD_ALREADY_BOOKED") > 0, "no double clicks happened, see $report")
+        assertTrue(run.count("CHILD_DOUBLE_BOOKED") > 0, "no child raced at two teachers, see $report")
+        assertTrue(run.count("EVENING_OVERLAPS") > 0, "no teacher raced overlapping evenings, see $report")
+        assertTrue(run.count("EVENING_HAS_ENDED") > 0, "no writes after an evening ended, see $report")
     }
 }
