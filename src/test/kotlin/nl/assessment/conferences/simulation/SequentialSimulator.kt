@@ -101,7 +101,7 @@ class SequentialSimulator(private val api: Api, private val jdbc: JdbcTemplate, 
                 )
             }
             is Action.Read -> when {
-                action.path.endsWith("/slots") -> AssignmentChecks.freeSlotsHaveRoom(pick.evening!!, reply, after)
+                action.path.endsWith("/slots") -> AssignmentChecks.freeSlotsHaveRoom(pick.evening!!, reply, after, at)
                 action.path.endsWith("/overview") -> AssignmentChecks.overviewShowsEverything(pick.evening!!, reply, after, school::nameOf)
                 action.path == "/evenings" -> AssignmentChecks.eveningListIsRight(action.user, reply, after, at, school)
                 else -> emptyList()

@@ -7,7 +7,7 @@ object Consistency {
         "INVALID_EVENING", "INVALID_REQUEST", "UNAUTHENTICATED", "FORBIDDEN",
         "EVENING_NOT_FOUND", "SLOT_NOT_FOUND", "BOOKING_NOT_FOUND",
         "EVENING_OVERLAPS", "SLOT_FULL", "CHILD_ALREADY_BOOKED", "CHILD_DOUBLE_BOOKED",
-        "EVENING_HAS_ENDED", "SLOT_HAS_BOOKINGS",
+        "EVENING_HAS_ENDED", "SLOT_HAS_BOOKINGS", "SLOT_HAS_STARTED",
     )
 
     fun check(action: Action, reply: Reply, before: Snapshot, after: Snapshot): List<Finding> {
