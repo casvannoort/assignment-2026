@@ -22,15 +22,17 @@
 
 **Rules I chose where the assignment was open.**
 - Capacity is set per evening when it is created (default 1); every slot gets it.
+- Leftover time shorter than one conversation is dropped: 19:00–20:00 in 25 minutes gives two slots.
 - One booking per child per evening. The overlap rule is per child, not per parent: two parents can split up.
 - Any parent of the child can move or cancel. The overview shows the parent who last booked or moved.
 - A slot with bookings cannot be removed (`409`); the bookings are never silently lost.
 - An evening has ended at its end time. After that nothing changes.
+- A slot can no longer be booked or moved into once it has started (`409`); a booking can still be cancelled.
 - A parent only sees and books evenings of their children's teachers.
 - Identity comes from one header, `X-User-Id`; the role follows from the seed data.
 - Times are the school's local time; the `Clock` is fixed to `Europe/Amsterdam`.
 
-**Tests.** TDD: for each rule a failing `test:` commit, then the commit that makes it pass (setup and end-to-end tests had no red step). Of the 80 tests, 27 are pure domain tests, 27 run commands, repository and views against a real Postgres (Testcontainers), 22 test the HTTP layer and 4 are end-to-end. The middle is heavier than a classic pyramid, because the locks and views only prove themselves against a real database.
+**Tests.** TDD: for each rule a failing `test:` commit, then the commit that makes it pass (setup and end-to-end tests had no red step). Of the 84 tests, 29 are pure domain tests, 27 run commands, repository and views against a real Postgres (Testcontainers), 24 test the HTTP layer and 4 are end-to-end. The middle is heavier than a classic pyramid, because the locks and views only prove themselves against a real database.
 
 ## Left out on purpose
 

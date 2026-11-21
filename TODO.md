@@ -97,4 +97,4 @@ Docs and results:
 - [x] Domain: booking or moving into a slot that has started gives `SlotHasStarted` (`409 SLOT_HAS_STARTED`)
 - [x] Free slots for a parent leave out slots that have started
 - [x] Simulation: `SLOT_HAS_STARTED` is a known code with a checked reason; free-slot check leaves out started slots
-- [ ] DECISIONS.md: leftover time is dropped; a started slot cannot be booked
+- [x] DECISIONS.md: leftover time is dropped; a started slot cannot be booked
