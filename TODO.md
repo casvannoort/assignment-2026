@@ -95,6 +95,6 @@ Docs and results:
 
 - [x] A conversation length longer than a day gives `400 INVALID_EVENING`, not `500`
 - [x] Domain: booking or moving into a slot that has started gives `SlotHasStarted` (`409 SLOT_HAS_STARTED`)
-- [ ] Free slots for a parent leave out slots that have started
+- [x] Free slots for a parent leave out slots that have started
 - [ ] Simulation: `SLOT_HAS_STARTED` is a known code with a checked reason; free-slot check leaves out started slots
 - [ ] DECISIONS.md: leftover time is dropped; a started slot cannot be booked
