@@ -78,7 +78,7 @@ Tick a todo in the same commit that does the work. See the workflow in `PLAN.md`
 Coverage:
 - [x] Picker: mostly pick evenings that are still open, sometimes an ended one
 - [x] Concurrent: one wave per burst passes an evening's end time; book, move and cancel on it are all refused
-- [ ] Picker: sometimes send capacity 0 or -1 when creating an evening (`400`)
+- [x] Picker: sometimes send capacity 0 or -1 when creating an evening (`400`)
 - [ ] Scenario S8: extra check that moving into the full 19:00 slot gives `409 SLOT_FULL`
 - [ ] Removed-slot check: a non-`200` reply from `/slots` is a finding, not a pass
 

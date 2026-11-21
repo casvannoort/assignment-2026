@@ -109,7 +109,7 @@ class ActionPicker(private val random: Random, private val school: School) {
         var minutes = listOf(10L, 15L, 20L).pick()
         if (chance(5)) length = -30
         if (chance(3)) minutes = 0
-        val capacity = listOf(null, null, 1, 2, 3).pick()
+        val capacity = if (chance(3)) listOf(0, -1).pick() else listOf(null, null, 1, 2, 3).pick()
         val action = Action.CreateEvening(
             teacher, state.now.toLocalDate().plusDays(day), start, start.plusMinutes(length), minutes, capacity,
         )
