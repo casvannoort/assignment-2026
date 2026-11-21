@@ -34,7 +34,7 @@ class ConcurrentSimulator(private val api: Api, private val jdbc: JdbcTemplate, 
         val log = Collections.synchronizedList(mutableListOf<String>())
         val outcomes = ConcurrentHashMap<String, Int>()
         val findings = mutableListOf<Finding>()
-        val seen = mutableSetOf<Finding>()
+        val new = NewFindings()
 
         // Log lines name people, children and slots by position, like the sequential log, so a line can be read without UUIDs.
         val slotNames = ConcurrentHashMap<UUID, String>()
@@ -84,7 +84,7 @@ class ConcurrentSimulator(private val api: Api, private val jdbc: JdbcTemplate, 
             val after = Snapshot.take(jdbc)
             val found = Invariants.check(jdbc, LocalDateTime.now(clock), ended) +
                 ConcurrentChecks.confirmedWritesStand(created, moved, after) + serverErrors + check(results.toList())
-            findings += found.filter { seen.add(it) }.map { it.copy(message = "seed $seed $name (intermittent): ${it.message}") }
+            findings += new.of(found).map { it.copy(message = "seed $seed $name (intermittent): ${it.message}") }
         }
 
         repeat(bursts) { burst ->

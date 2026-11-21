@@ -27,7 +27,7 @@ class SequentialSimulator(private val api: Api, private val jdbc: JdbcTemplate, 
         val log = mutableListOf<String>()
         val outcomes = mutableMapOf<String, Int>()
         val findings = mutableListOf<Finding>()
-        val seen = mutableSetOf<Finding>()
+        val new = NewFindings()
 
         repeat(steps) { step ->
             try {
@@ -48,8 +48,7 @@ class SequentialSimulator(private val api: Api, private val jdbc: JdbcTemplate, 
                     found += assignmentChecks(pick, reply, before, after, school, requestedAt)
                 }
                 found += Invariants.check(jdbc, now(), ended)
-                // A broken state stays broken: report each violation once, at the step that caused it.
-                findings += found.filter { seen.add(it) }.map { it.copy(message = "seed $seed step $step: ${it.message}") }
+                findings += new.of(found).map { it.copy(message = "seed $seed step $step: ${it.message}") }
 
                 val outcome = when {
                     reply == null -> "advance clock"

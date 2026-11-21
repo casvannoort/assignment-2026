@@ -85,7 +85,7 @@ Coverage:
 Reports:
 - [x] Count outcomes per action and code
 - [x] Concurrent log lines name parent, child and slot; a lasting finding is reported once per run (already so since `c79443c`)
-- [ ] A violation that comes back on the same row is reported again
+- [x] A violation that comes back on the same row is reported again
 
 Docs and results:
 - [ ] README: how to run `./gradlew simulation` and its options
