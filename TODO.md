@@ -88,5 +88,5 @@ Reports:
 - [x] A violation that comes back on the same row is reported again
 
 Docs and results:
-- [ ] README: how to run `./gradlew simulation` and its options
+- [x] README: how to run `./gradlew simulation` and its options
 - [ ] Run the full simulation again and update Results in `SIMULATION.md`
